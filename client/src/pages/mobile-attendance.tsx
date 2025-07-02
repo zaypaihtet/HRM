@@ -14,8 +14,11 @@ export default function MobileAttendance() {
     queryKey: ["/api/attendance"],
   });
 
+  // Ensure attendance is an array
+  const attendanceArray = Array.isArray(attendance) ? attendance : [];
+
   // Calculate stats
-  const totalWorkingTime = attendance.reduce((total: number, record: any) => {
+  const totalWorkingTime = attendanceArray.reduce((total: number, record: any) => {
     if (record.checkOut) {
       const checkIn = new Date(`${record.date}T${record.checkIn}`);
       const checkOut = new Date(`${record.date}T${record.checkOut}`);
@@ -24,11 +27,11 @@ export default function MobileAttendance() {
     return total;
   }, 0);
 
-  const totalOvertime = attendance.reduce((total: number, record: any) => {
-    return total + (record.overtimeHours || 0);
+  const totalOvertime = attendanceArray.reduce((total: number, record: any) => {
+    return total + (Number(record.overtimeHours) || 0);
   }, 0);
 
-  const workingDays = attendance.filter((record: any) => record.status === 'present').length;
+  const workingDays = attendanceArray.filter((record: any) => record.status === 'present').length;
   const totalAttendance = 19; // Mock total for demo
 
   return (
@@ -93,7 +96,7 @@ export default function MobileAttendance() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          {attendance.map((record: any, index: number) => (
+          {attendanceArray.map((record: any, index: number) => (
             <motion.div
               key={record.id}
               className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"

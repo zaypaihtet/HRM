@@ -11,8 +11,11 @@ export default function MobileHolidays() {
     queryKey: ["/api/holidays"],
   });
 
+  // Ensure holidays is an array
+  const holidaysArray = Array.isArray(holidays) ? holidays : [];
+
   const today = new Date();
-  const upcomingHolidays = holidays.filter((holiday: any) => 
+  const upcomingHolidays = holidaysArray.filter((holiday: any) => 
     isAfter(parseISO(holiday.date), today) || 
     format(parseISO(holiday.date), 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
   );
@@ -92,7 +95,7 @@ export default function MobileHolidays() {
               <div className="text-xs opacity-80">Upcoming</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3">
-              <div className="text-lg font-bold">{holidays.length}</div>
+              <div className="text-lg font-bold">{holidaysArray.length}</div>
               <div className="text-xs opacity-80">Total This Year</div>
             </div>
           </div>
@@ -105,13 +108,13 @@ export default function MobileHolidays() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          {holidays.length === 0 ? (
+          {holidaysArray.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500">No holidays scheduled</p>
             </div>
           ) : (
-            holidays.map((holiday: any, index: number) => {
+            holidaysArray.map((holiday: any, index: number) => {
               const holidayStatus = getHolidayStatus(holiday.date);
               const daysUntil = getDaysUntil(holiday.date);
               
