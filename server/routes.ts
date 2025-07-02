@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertAttendanceSchema, insertRequestSchema, insertPayrollSchema, insertHolidaySchema } from "@shared/schema";
+import { insertUserSchema, insertAttendanceSchema, insertRequestSchema, insertPayrollSchema, insertHolidaySchema, insertCheckinZoneSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -401,6 +401,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Holiday deleted" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete holiday" });
+    }
+  });
+
+  // Check-in Zone routes
+  app.get("/api/checkin-zones", async (req, res) => {
+    try {
+      const zones = await storage.getAllCheckinZones();
+      res.json(zones);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch check-in zones" });
+    }
+  });
+
+  app.get("/api/checkin-zones/active", async (req, res) => {
+    try {
+      const zones = await storage.getActiveCheckinZones();
+      res.json(zones);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active check-in zones" });
+    }
+  });
+
+  app.post("/api/checkin-zones", async (req, res) => {
+    try {
+      const zoneData = insertCheckinZoneSchema.parse(req.body);
+      const zone = await storage.createCheckinZone(zoneData);
+      res.status(201).json(zone);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid check-in zone data" });
+    }
+  });
+
+  app.put("/api/checkin-zones/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const zone = await storage.updateCheckinZone(id, updateData);
+      if (!zone) {
+        return res.status(404).json({ message: "Check-in zone not found" });
+      }
+      res.json(zone);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update check-in zone" });
+    }
+  });
+
+  app.delete("/api/checkin-zones/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteCheckinZone(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Check-in zone not found" });
+      }
+      res.json({ message: "Check-in zone deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete check-in zone" });
+    }
+  });
+
+  // Employee report generation routes
+  app.get("/api/reports/employees", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const employees = await storage.getEmployees();
+      const report = [];
+
+      for (const employee of employees) {
+        const attendance = await storage.getAttendanceByUser(employee.id);
+        const requests = await storage.getRequestsByUser(employee.id);
+        const payroll = await storage.getPayrollByUser(employee.id);
+
+        // Filter attendance by date range if provided
+        let filteredAttendance = attendance;
+        if (startDate && endDate) {
+          filteredAttendance = attendance.filter(att => 
+            att.date >= startDate && att.date <= endDate
+          );
+        }
+
+        const totalHours = filteredAttendance.reduce((sum, att) => 
+          sum + parseFloat(att.hoursWorked || '0'), 0
+        );
+        const totalOvertimeHours = filteredAttendance.reduce((sum, att) => 
+          sum + parseFloat(att.overtimeHours || '0'), 0
+        );
+
+        report.push({
+          employee: {
+            id: employee.id,
+            name: employee.name,
+            email: employee.email,
+            department: employee.department,
+            position: employee.position,
+          },
+          attendance: {
+            totalDays: filteredAttendance.length,
+            totalHours,
+            totalOvertimeHours,
+            presentDays: filteredAttendance.filter(att => att.status === 'present').length,
+            absentDays: filteredAttendance.filter(att => att.status === 'absent').length,
+            lateDays: filteredAttendance.filter(att => att.status === 'late').length,
+          },
+          requests: {
+            total: requests.length,
+            pending: requests.filter(req => req.status === 'pending').length,
+            approved: requests.filter(req => req.status === 'approved').length,
+            rejected: requests.filter(req => req.status === 'rejected').length,
+          },
+          payroll: {
+            records: payroll.length,
+            totalEarnings: payroll.reduce((sum, pay) => sum + parseFloat(pay.netPay), 0),
+          }
+        });
+      }
+
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate employee report" });
     }
   });
 

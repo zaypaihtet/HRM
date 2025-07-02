@@ -75,12 +75,32 @@ export function getCurrentLocation(): Promise<Location> {
 export async function validateCheckInLocation(): Promise<{ isValid: boolean; location: string }> {
   try {
     const currentLocation = await getCurrentLocation();
-    const isInOffice = isLocationInGeofence(currentLocation, OFFICE_LOCATION);
     
-    return {
-      isValid: isInOffice,
-      location: isInOffice ? "Office" : "Outside Office Zone"
-    };
+    // Fetch active check-in zones from the API
+    const response = await fetch('/api/checkin-zones/active');
+    if (!response.ok) {
+      throw new Error('Failed to fetch check-in zones');
+    }
+    
+    const zones = await response.json();
+    
+    // Check if current location is within any active zone
+    for (const zone of zones) {
+      const geofenceZone: GeofenceZone = {
+        center: {
+          latitude: parseFloat(zone.latitude),
+          longitude: parseFloat(zone.longitude)
+        },
+        radius: zone.radius,
+        name: zone.name
+      };
+      
+      if (isLocationInGeofence(currentLocation, geofenceZone)) {
+        return { isValid: true, location: zone.name };
+      }
+    }
+    
+    return { isValid: false, location: "Outside allowed areas" };
   } catch (error) {
     console.error("Location validation error:", error);
     // For demo purposes, allow check-in with mock validation

@@ -4,6 +4,7 @@ import {
   requests, 
   payroll, 
   holidays,
+  checkinZones,
   type User, 
   type InsertUser,
   type Attendance,
@@ -13,8 +14,12 @@ import {
   type Payroll,
   type InsertPayroll,
   type Holiday,
-  type InsertHoliday
+  type InsertHoliday,
+  type CheckinZone,
+  type InsertCheckinZone
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -55,427 +60,301 @@ export interface IStorage {
   createHoliday(holiday: InsertHoliday): Promise<Holiday>;
   updateHoliday(id: number, holiday: Partial<InsertHoliday>): Promise<Holiday | undefined>;
   deleteHoliday(id: number): Promise<boolean>;
+
+  // Check-in Zones
+  getCheckinZone(id: number): Promise<CheckinZone | undefined>;
+  getAllCheckinZones(): Promise<CheckinZone[]>;
+  getActiveCheckinZones(): Promise<CheckinZone[]>;
+  createCheckinZone(zone: InsertCheckinZone): Promise<CheckinZone>;
+  updateCheckinZone(id: number, zone: Partial<InsertCheckinZone>): Promise<CheckinZone | undefined>;
+  deleteCheckinZone(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private attendance: Map<number, Attendance> = new Map();
-  private requests: Map<number, Request> = new Map();
-  private payroll: Map<number, Payroll> = new Map();
-  private holidays: Map<number, Holiday> = new Map();
-  
-  private currentUserId = 1;
-  private currentAttendanceId = 1;
-  private currentRequestId = 1;
-  private currentPayrollId = 1;
-  private currentHolidayId = 1;
-
+export class DatabaseStorage implements IStorage {
   constructor() {
-    this.seedData();
+    this.initializeData();
   }
 
-  private seedData() {
-    // Create HR admin user
-    const hrUser: User = {
-      id: this.currentUserId++,
-      username: "admin",
-      password: "admin123",
-      role: "hr",
-      name: "Admin User",
-      email: "admin@hrflow.com",
-      department: "Human Resources",
-      position: "HR Manager",
-      baseSalary: "8000.00",
-      isActive: true,
-      createdAt: new Date(),
-    };
-    this.users.set(hrUser.id, hrUser);
-
-    // Create sample employees
-    const employees = [
-      {
-        username: "john.smith",
-        password: "password123",
-        name: "John Smith",
-        email: "john.smith@company.com",
-        department: "Engineering",
-        position: "Software Engineer",
-        baseSalary: "5500.00",
-      },
-      {
-        username: "sarah.johnson",
-        password: "password123",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@company.com",
-        department: "Design",
-        position: "UI/UX Designer",
-        baseSalary: "4800.00",
-      },
-      {
-        username: "mike.brown",
-        password: "password123",
-        name: "Mike Brown",
-        email: "mike.brown@company.com",
-        department: "Management",
-        position: "Project Manager",
-        baseSalary: "6200.00",
-      },
-    ];
-
-    employees.forEach(emp => {
-      const user: User = {
-        id: this.currentUserId++,
-        username: emp.username,
-        password: emp.password,
-        role: "employee",
-        name: emp.name,
-        email: emp.email,
-        department: emp.department,
-        position: emp.position,
-        baseSalary: emp.baseSalary,
-        isActive: true,
-        createdAt: new Date(),
-      };
-      this.users.set(user.id, user);
-    });
-
-    // Create sample attendance records for today
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceRecords = [
-      {
-        userId: 2,
-        date: today,
-        checkIn: new Date(new Date().setHours(9, 15, 0, 0)),
-        checkOut: new Date(new Date().setHours(18, 30, 0, 0)),
-        location: "Office",
-        status: "present",
-        hoursWorked: "9.25",
-        overtimeHours: "1.25",
-      },
-      {
-        userId: 3,
-        date: today,
-        checkIn: new Date(new Date().setHours(8, 45, 0, 0)),
-        checkOut: new Date(new Date().setHours(17, 15, 0, 0)),
-        location: "Office",
-        status: "present",
-        hoursWorked: "8.50",
-        overtimeHours: "0.50",
-      },
-      {
-        userId: 4,
-        date: today,
-        checkIn: null,
-        checkOut: null,
-        location: null,
-        status: "absent",
-        hoursWorked: "0.00",
-        overtimeHours: "0.00",
-      },
-    ];
-
-    attendanceRecords.forEach(att => {
-      const attendance: Attendance = {
-        id: this.currentAttendanceId++,
-        ...att,
-      };
-      this.attendance.set(attendance.id, attendance);
-    });
-
-    // Create sample requests
-    const sampleRequests = [
-      {
-        userId: 3,
-        type: "leave",
-        startDate: "2024-04-15",
-        endDate: "2024-04-19",
-        reason: "Family vacation",
-        status: "pending",
-        reviewerId: null,
-        reviewComment: null,
-        createdAt: new Date(),
-        reviewedAt: null,
-      },
-      {
-        userId: 4,
-        type: "overtime",
-        startDate: "2024-03-28",
-        endDate: "2024-03-28",
-        reason: "Project deadline",
-        status: "approved",
-        reviewerId: 1,
-        reviewComment: "Approved for project completion",
-        createdAt: new Date(Date.now() - 86400000),
-        reviewedAt: new Date(),
-      },
-      {
-        userId: 2,
-        type: "attendance_adjustment",
-        startDate: "2024-03-25",
-        endDate: "2024-03-25",
-        reason: "Forgot to check-in",
-        status: "pending",
-        reviewerId: null,
-        reviewComment: null,
-        createdAt: new Date(Date.now() - 3600000),
-        reviewedAt: null,
-      },
-    ];
-
-    sampleRequests.forEach(req => {
-      const request: Request = {
-        id: this.currentRequestId++,
-        ...req,
-      };
-      this.requests.set(request.id, request);
-    });
-
-    // Create sample payroll records
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
-    
-    [2, 3, 4].forEach(userId => {
-      const user = this.users.get(userId);
-      if (user) {
-        const baseSalary = parseFloat(user.baseSalary || "0");
-        const overtimePay = userId === 2 ? 280 : userId === 3 ? 120 : 0;
-        const deductions = baseSalary * 0.12; // 12% deductions
-        const netPay = baseSalary + overtimePay - deductions;
-
-        const payrollRecord: Payroll = {
-          id: this.currentPayrollId++,
-          userId,
-          month: currentMonth,
-          year: currentYear,
-          baseSalary: baseSalary.toFixed(2),
-          overtimePay: overtimePay.toFixed(2),
-          deductions: deductions.toFixed(2),
-          netPay: netPay.toFixed(2),
-          status: userId === 2 ? "processed" : "pending",
-          createdAt: new Date(),
-        };
-        this.payroll.set(payrollRecord.id, payrollRecord);
+  private async initializeData() {
+    try {
+      // Check if admin user exists, if not seed data
+      const adminUser = await this.getUserByUsername("admin");
+      if (!adminUser) {
+        await this.seedData();
       }
-    });
+    } catch (error) {
+      console.error("Error initializing data:", error);
+    }
+  }
 
-    // Create sample holidays
-    const holidays = [
-      { name: "New Year's Day", date: "2024-01-01", isActive: true },
-      { name: "Independence Day", date: "2024-07-04", isActive: true },
-      { name: "Christmas Day", date: "2024-12-25", isActive: true },
-    ];
+  private async seedData() {
+    try {
+      // Create HR admin user
+      const hrUser = await db.insert(users).values({
+        username: "admin",
+        password: "admin123",
+        role: "hr",
+        name: "Admin User",
+        email: "admin@hrflow.com",
+        department: "Human Resources",
+        position: "HR Manager",
+        baseSalary: "8000.00",
+      }).returning();
 
-    holidays.forEach(holiday => {
-      const holidayRecord: Holiday = {
-        id: this.currentHolidayId++,
-        ...holiday,
-      };
-      this.holidays.set(holidayRecord.id, holidayRecord);
-    });
+      // Create sample employees
+      const employeeData = [
+        {
+          username: "john.smith",
+          password: "password123",
+          name: "John Smith",
+          email: "john.smith@company.com",
+          department: "Engineering",
+          position: "Software Engineer",
+          baseSalary: "5500.00",
+        },
+        {
+          username: "sarah.johnson",
+          password: "password123",
+          name: "Sarah Johnson",
+          email: "sarah.johnson@company.com",
+          department: "Design",
+          position: "UI/UX Designer",
+          baseSalary: "4800.00",
+        },
+        {
+          username: "mike.brown",
+          password: "password123",
+          name: "Mike Brown",
+          email: "mike.brown@company.com",
+          department: "Management",
+          position: "Project Manager",
+          baseSalary: "6200.00",
+        },
+      ];
+
+      const employees = await db.insert(users).values(employeeData).returning();
+
+      // Create default check-in zone (office)
+      await db.insert(checkinZones).values({
+        name: "Main Office",
+        latitude: "37.7749",
+        longitude: "-122.4194",
+        radius: 100,
+      });
+
+      // Create sample attendance records for today
+      const today = new Date().toISOString().split('T')[0];
+      await db.insert(attendance).values([
+        {
+          userId: employees[0].id,
+          date: today,
+          checkIn: new Date(new Date().setHours(9, 15, 0, 0)),
+          checkOut: new Date(new Date().setHours(18, 30, 0, 0)),
+          location: "Office",
+          status: "present",
+          hoursWorked: "9.25",
+          overtimeHours: "1.25",
+        },
+        {
+          userId: employees[1].id,
+          date: today,
+          checkIn: new Date(new Date().setHours(8, 45, 0, 0)),
+          checkOut: new Date(new Date().setHours(17, 15, 0, 0)),
+          location: "Office",
+          status: "present",
+          hoursWorked: "8.50",
+          overtimeHours: "0.50",
+        },
+        {
+          userId: employees[2].id,
+          date: today,
+          location: null,
+          status: "absent",
+          hoursWorked: "0.00",
+          overtimeHours: "0.00",
+        },
+      ]);
+
+      // Create sample holiday
+      await db.insert(holidays).values({
+        name: "New Year's Day",
+        date: "2025-01-01",
+      });
+
+      console.log("Database seeded successfully");
+    } catch (error) {
+      console.error("Error seeding data:", error);
+    }
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0] || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0] || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const user: User = {
-      id: this.currentUserId++,
-      ...insertUser,
-      role: insertUser.role || "employee",
-      department: insertUser.department || null,
-      position: insertUser.position || null,
-      baseSalary: insertUser.baseSalary || null,
-      isActive: insertUser.isActive ?? true,
-      createdAt: new Date(),
-    };
-    this.users.set(user.id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
 
   async updateUser(id: number, updateUser: Partial<InsertUser>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-
-    const updatedUser = { ...user, ...updateUser };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const result = await db.update(users).set(updateUser).where(eq(users.id, id)).returning();
+    return result[0] || undefined;
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return await db.select().from(users);
   }
 
   async getEmployees(): Promise<User[]> {
-    return Array.from(this.users.values()).filter(user => user.role === "employee");
+    return await db.select().from(users).where(eq(users.role, "employee"));
   }
 
   // Attendance methods
   async getAttendance(id: number): Promise<Attendance | undefined> {
-    return this.attendance.get(id);
+    const result = await db.select().from(attendance).where(eq(attendance.id, id));
+    return result[0] || undefined;
   }
 
   async getAttendanceByUser(userId: number): Promise<Attendance[]> {
-    return Array.from(this.attendance.values()).filter(att => att.userId === userId);
+    return await db.select().from(attendance).where(eq(attendance.userId, userId));
   }
 
   async getAttendanceByDate(date: string): Promise<Attendance[]> {
-    return Array.from(this.attendance.values()).filter(att => att.date === date);
+    return await db.select().from(attendance).where(eq(attendance.date, date));
   }
 
   async createAttendance(insertAttendance: InsertAttendance): Promise<Attendance> {
-    const attendance: Attendance = {
-      id: this.currentAttendanceId++,
-      ...insertAttendance,
-      status: insertAttendance.status || "present",
-      checkIn: insertAttendance.checkIn || null,
-      checkOut: insertAttendance.checkOut || null,
-      location: insertAttendance.location || null,
-      hoursWorked: insertAttendance.hoursWorked || null,
-      overtimeHours: insertAttendance.overtimeHours || null,
-    };
-    this.attendance.set(attendance.id, attendance);
-    return attendance;
+    const result = await db.insert(attendance).values(insertAttendance).returning();
+    return result[0];
   }
 
   async updateAttendance(id: number, updateAttendance: Partial<InsertAttendance>): Promise<Attendance | undefined> {
-    const attendance = this.attendance.get(id);
-    if (!attendance) return undefined;
-
-    const updatedAttendance = { ...attendance, ...updateAttendance };
-    this.attendance.set(id, updatedAttendance);
-    return updatedAttendance;
+    const result = await db.update(attendance).set(updateAttendance).where(eq(attendance.id, id)).returning();
+    return result[0] || undefined;
   }
 
   async deleteAttendance(id: number): Promise<boolean> {
-    return this.attendance.delete(id);
+    const result = await db.delete(attendance).where(eq(attendance.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async getTodayAttendance(): Promise<Attendance[]> {
     const today = new Date().toISOString().split('T')[0];
-    return this.getAttendanceByDate(today);
+    return await db.select().from(attendance).where(eq(attendance.date, today));
   }
 
   // Request methods
   async getRequest(id: number): Promise<Request | undefined> {
-    return this.requests.get(id);
+    const result = await db.select().from(requests).where(eq(requests.id, id));
+    return result[0] || undefined;
   }
 
   async getRequestsByUser(userId: number): Promise<Request[]> {
-    return Array.from(this.requests.values()).filter(req => req.userId === userId);
+    return await db.select().from(requests).where(eq(requests.userId, userId));
   }
 
   async getAllRequests(): Promise<Request[]> {
-    return Array.from(this.requests.values());
+    return await db.select().from(requests);
   }
 
   async getPendingRequests(): Promise<Request[]> {
-    return Array.from(this.requests.values()).filter(req => req.status === "pending");
+    return await db.select().from(requests).where(eq(requests.status, "pending"));
   }
 
   async createRequest(insertRequest: InsertRequest): Promise<Request> {
-    const request: Request = {
-      id: this.currentRequestId++,
-      ...insertRequest,
-      status: insertRequest.status || "pending",
-      endDate: insertRequest.endDate || null,
-      reviewerId: insertRequest.reviewerId || null,
-      reviewComment: insertRequest.reviewComment || null,
-      createdAt: new Date(),
-      reviewedAt: null,
-    };
-    this.requests.set(request.id, request);
-    return request;
+    const result = await db.insert(requests).values(insertRequest).returning();
+    return result[0];
   }
 
   async updateRequest(id: number, updateRequest: Partial<Request>): Promise<Request | undefined> {
-    const request = this.requests.get(id);
-    if (!request) return undefined;
-
-    const updatedRequest = { ...request, ...updateRequest };
-    if (updateRequest.status && updateRequest.status !== "pending") {
-      updatedRequest.reviewedAt = new Date();
-    }
-    this.requests.set(id, updatedRequest);
-    return updatedRequest;
+    const result = await db.update(requests).set(updateRequest).where(eq(requests.id, id)).returning();
+    return result[0] || undefined;
   }
 
   // Payroll methods
   async getPayroll(id: number): Promise<Payroll | undefined> {
-    return this.payroll.get(id);
+    const result = await db.select().from(payroll).where(eq(payroll.id, id));
+    return result[0] || undefined;
   }
 
   async getPayrollByUser(userId: number): Promise<Payroll[]> {
-    return Array.from(this.payroll.values()).filter(pay => pay.userId === userId);
+    return await db.select().from(payroll).where(eq(payroll.userId, userId));
   }
 
   async getPayrollByMonth(month: number, year: number): Promise<Payroll[]> {
-    return Array.from(this.payroll.values()).filter(pay => pay.month === month && pay.year === year);
+    return await db.select().from(payroll).where(and(eq(payroll.month, month), eq(payroll.year, year)));
   }
 
   async createPayroll(insertPayroll: InsertPayroll): Promise<Payroll> {
-    const payroll: Payroll = {
-      id: this.currentPayrollId++,
-      ...insertPayroll,
-      status: insertPayroll.status || "pending",
-      overtimePay: insertPayroll.overtimePay || null,
-      deductions: insertPayroll.deductions || null,
-      createdAt: new Date(),
-    };
-    this.payroll.set(payroll.id, payroll);
-    return payroll;
+    const result = await db.insert(payroll).values(insertPayroll).returning();
+    return result[0];
   }
 
   async updatePayroll(id: number, updatePayroll: Partial<InsertPayroll>): Promise<Payroll | undefined> {
-    const payroll = this.payroll.get(id);
-    if (!payroll) return undefined;
-
-    const updatedPayroll = { ...payroll, ...updatePayroll };
-    this.payroll.set(id, updatedPayroll);
-    return updatedPayroll;
+    const result = await db.update(payroll).set(updatePayroll).where(eq(payroll.id, id)).returning();
+    return result[0] || undefined;
   }
 
   // Holiday methods
   async getHoliday(id: number): Promise<Holiday | undefined> {
-    return this.holidays.get(id);
+    const result = await db.select().from(holidays).where(eq(holidays.id, id));
+    return result[0] || undefined;
   }
 
   async getAllHolidays(): Promise<Holiday[]> {
-    return Array.from(this.holidays.values()).filter(holiday => holiday.isActive);
+    return await db.select().from(holidays);
   }
 
   async createHoliday(insertHoliday: InsertHoliday): Promise<Holiday> {
-    const holiday: Holiday = {
-      id: this.currentHolidayId++,
-      ...insertHoliday,
-      isActive: insertHoliday.isActive ?? true,
-    };
-    this.holidays.set(holiday.id, holiday);
-    return holiday;
+    const result = await db.insert(holidays).values(insertHoliday).returning();
+    return result[0];
   }
 
   async updateHoliday(id: number, updateHoliday: Partial<InsertHoliday>): Promise<Holiday | undefined> {
-    const holiday = this.holidays.get(id);
-    if (!holiday) return undefined;
-
-    const updatedHoliday = { ...holiday, ...updateHoliday };
-    this.holidays.set(id, updatedHoliday);
-    return updatedHoliday;
+    const result = await db.update(holidays).set(updateHoliday).where(eq(holidays.id, id)).returning();
+    return result[0] || undefined;
   }
 
   async deleteHoliday(id: number): Promise<boolean> {
-    const holiday = this.holidays.get(id);
-    if (!holiday) return false;
+    const result = await db.delete(holidays).where(eq(holidays.id, id));
+    return (result.rowCount || 0) > 0;
+  }
 
-    const updatedHoliday = { ...holiday, isActive: false };
-    this.holidays.set(id, updatedHoliday);
-    return true;
+  // Check-in Zone methods
+  async getCheckinZone(id: number): Promise<CheckinZone | undefined> {
+    const result = await db.select().from(checkinZones).where(eq(checkinZones.id, id));
+    return result[0] || undefined;
+  }
+
+  async getAllCheckinZones(): Promise<CheckinZone[]> {
+    return await db.select().from(checkinZones);
+  }
+
+  async getActiveCheckinZones(): Promise<CheckinZone[]> {
+    return await db.select().from(checkinZones).where(eq(checkinZones.isActive, true));
+  }
+
+  async createCheckinZone(insertZone: InsertCheckinZone): Promise<CheckinZone> {
+    const result = await db.insert(checkinZones).values(insertZone).returning();
+    return result[0];
+  }
+
+  async updateCheckinZone(id: number, updateZone: Partial<InsertCheckinZone>): Promise<CheckinZone | undefined> {
+    const result = await db.update(checkinZones).set(updateZone).where(eq(checkinZones.id, id)).returning();
+    return result[0] || undefined;
+  }
+
+  async deleteCheckinZone(id: number): Promise<boolean> {
+    const result = await db.update(checkinZones).set({ isActive: false }).where(eq(checkinZones.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

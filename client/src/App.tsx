@@ -9,6 +9,8 @@ import Attendance from "@/pages/attendance";
 import Payroll from "@/pages/payroll";
 import Requests from "@/pages/requests";
 import Holidays from "@/pages/holidays";
+import CheckinZones from "@/pages/checkin-zones";
+import EmployeeReports from "@/pages/employee-reports";
 import Mobile from "@/pages/mobile";
 import EmployeePortal from "@/pages/employee-portal";
 import Sidebar from "@/components/layout/sidebar";
@@ -131,6 +133,8 @@ function AppLayout() {
             <Route path="/payroll" component={Payroll} />
             <Route path="/requests" component={Requests} />
             <Route path="/holidays" component={Holidays} />
+            <Route path="/checkin-zones" component={CheckinZones} />
+            <Route path="/employee-reports" component={EmployeeReports} />
             <Route path="/mobile" component={Mobile} />
             <Route component={Dashboard} />
           </Switch>

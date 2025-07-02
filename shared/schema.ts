@@ -62,6 +62,16 @@ export const holidays = pgTable("holidays", {
   isActive: boolean("is_active").default(true),
 });
 
+export const checkinZones = pgTable("checkin_zones", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  radius: integer("radius").notNull(), // in meters
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -86,6 +96,11 @@ export const insertHolidaySchema = createInsertSchema(holidays).omit({
   id: true,
 });
 
+export const insertCheckinZoneSchema = createInsertSchema(checkinZones).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Attendance = typeof attendance.$inferSelect;
@@ -96,3 +111,5 @@ export type Payroll = typeof payroll.$inferSelect;
 export type InsertPayroll = z.infer<typeof insertPayrollSchema>;
 export type Holiday = typeof holidays.$inferSelect;
 export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
+export type CheckinZone = typeof checkinZones.$inferSelect;
+export type InsertCheckinZone = z.infer<typeof insertCheckinZoneSchema>;
