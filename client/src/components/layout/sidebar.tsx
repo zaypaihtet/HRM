@@ -13,7 +13,7 @@ const navigation = [
   { name: "Holidays", href: "/holidays", icon: Calendar },
   { name: "Check-in Zones", href: "/checkin-zones", icon: MapPin },
   { name: "Employee Reports", href: "/employee-reports", icon: FileText },
-  { name: "Mobile View", href: "/mobile", icon: Smartphone },
+  { name: "Mobile App", href: "/mobile-app", icon: Smartphone },
 ];
 
 export default function Sidebar() {
@@ -47,14 +47,12 @@ export default function Sidebar() {
             const isActive = location === item.href || (item.href === "/" && location === "/");
             
             return (
-              <Link key={item.name} href={item.href}>
-                <a className={cn(
-                  "nav-item",
-                  isActive && "active bg-primary/10 text-primary"
-                )}>
-                  <Icon className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </a>
+              <Link key={item.name} href={item.href} className={cn(
+                "nav-item",
+                isActive && "active bg-primary/10 text-primary"
+              )}>
+                <Icon className="w-5 h-5" />
+                <span>{item.name}</span>
               </Link>
             );
           })}

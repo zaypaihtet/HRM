@@ -15,6 +15,7 @@ import Employees from "@/pages/employees";
 import Mobile from "@/pages/mobile";
 import MobileReal from "@/pages/mobile-real";
 import MobileRequests from "@/pages/mobile-requests";
+import MobileApp from "@/pages/mobile-app";
 import EmployeePortal from "@/pages/employee-portal";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -125,6 +126,7 @@ function AppLayout() {
       <Switch>
         <Route path="/mobile-real" component={MobileReal} />
         <Route path="/mobile-requests" component={MobileRequests} />
+        <Route path="/mobile-app" component={MobileApp} />
         <Route path="/mobile" component={Mobile} />
         <Route component={EmployeePortal} />
       </Switch>
