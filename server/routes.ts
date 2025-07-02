@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertAttendanceSchema, insertRequestSchema, insertPayrollSchema, insertHolidaySchema, insertCheckinZoneSchema } from "@shared/schema";
+import { authenticateToken, requireHR, requireEmployee, generateToken } from "./middleware/auth";
+import { hashPassword, verifyPassword, validatePasswordStrength } from "./utils/password";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -9,13 +11,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
+      
+      // Input validation
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
       const user = await storage.getUserByUsername(username);
       
-      if (!user || user.password !== password) {
+      if (!user) {
+        // Generic error message to prevent user enumeration
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Verify password using bcrypt
+      const isPasswordValid = await verifyPassword(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Generate JWT token
+      const token = generateToken({
+        id: user.id,
+        username: user.username,
+        role: user.role
+      });
+
       res.json({ 
+        token,
         user: { 
           id: user.id, 
           username: user.username, 
@@ -27,46 +51,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } 
       });
     } catch (error) {
+      console.error('Login error:', error);
       res.status(500).json({ message: "Login failed" });
     }
   });
 
-  // User/Employee management routes
-  app.get("/api/users", async (req, res) => {
+  // Password change route
+  app.post("/api/auth/change-password", authenticateToken, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current and new passwords are required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await verifyPassword(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      // Validate new password strength
+      const passwordValidation = validatePasswordStrength(newPassword);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({ 
+          message: "Password does not meet requirements",
+          errors: passwordValidation.errors
+        });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(userId, { password: hashedNewPassword });
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error('Password change error:', error);
+      res.status(500).json({ message: "Password change failed" });
+    }
+  });
+
+  // User/Employee management routes (HR only)
+  app.get("/api/users", authenticateToken, requireHR, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users);
+      // Never return passwords in response
+      const safeUsers = users.map(u => ({ ...u, password: undefined }));
+      res.json(safeUsers);
     } catch (error) {
+      console.error('Fetch users error:', error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", authenticateToken, requireHR, async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      
+      // Validate password strength if password is provided
+      if (userData.password) {
+        const passwordValidation = validatePasswordStrength(userData.password);
+        if (!passwordValidation.isValid) {
+          return res.status(400).json({ 
+            message: "Password does not meet requirements",
+            errors: passwordValidation.errors
+          });
+        }
+        
+        // Hash the password before storing
+        userData.password = await hashPassword(userData.password);
+      }
+      
       const user = await storage.createUser(userData);
-      res.status(201).json(user);
+      // Never return password in response
+      res.status(201).json({ ...user, password: undefined });
     } catch (error) {
+      console.error('Create user error:', error);
       res.status(400).json({ message: "Invalid user data" });
     }
   });
 
-  app.put("/api/users/:id", async (req, res) => {
+  app.put("/api/users/:id", authenticateToken, requireHR, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
+      
+      // Validate ID parameter
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // If password is being updated, hash it
+      if (updateData.password) {
+        const passwordValidation = validatePasswordStrength(updateData.password);
+        if (!passwordValidation.isValid) {
+          return res.status(400).json({ 
+            message: "Password does not meet requirements",
+            errors: passwordValidation.errors
+          });
+        }
+        updateData.password = await hashPassword(updateData.password);
+      }
+      
       const user = await storage.updateUser(id, updateData);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json(user);
+      
+      res.json({ ...user, password: undefined });
     } catch (error) {
+      console.error('Update user error:', error);
       res.status(500).json({ message: "Failed to update user" });
     }
   });
 
-  // Dashboard stats
-  app.get("/api/dashboard/stats", async (req, res) => {
+  // Dashboard stats (HR only)
+  app.get("/api/dashboard/stats", authenticateToken, requireHR, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       const employees = users.filter(u => u.role === "employee");
@@ -83,28 +195,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onLeave,
       });
     } catch (error) {
+      console.error('Dashboard stats error:', error);
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   });
 
-  // User routes
-  app.get("/api/users", async (req, res) => {
+  // Get user profile (self or HR accessing others)
+  app.get("/api/users/:id", authenticateToken, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      res.json(users.map(u => ({ ...u, password: undefined })));
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  app.get("/api/users/:id", async (req, res) => {
-    try {
-      const user = await storage.getUser(parseInt(req.params.id));
+      const id = parseInt(req.params.id);
+      const currentUserId = req.user?.id;
+      const currentUserRole = req.user?.role;
+      
+      // Validate ID parameter
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Users can only access their own profile unless they're HR
+      if (currentUserRole !== 'hr' && currentUserId !== id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const user = await storage.getUser(id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      
       res.json({ ...user, password: undefined });
     } catch (error) {
+      console.error('Fetch user error:', error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
@@ -120,17 +240,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance routes
-  app.get("/api/attendance", async (req, res) => {
+  app.get("/api/attendance", authenticateToken, async (req, res) => {
     try {
       const { date, userId } = req.query;
+      const currentUserId = req.user?.id;
+      const currentUserRole = req.user?.role;
       let attendance;
+      
+      // Employees can only view their own attendance unless they're HR
+      if (userId && currentUserRole !== 'hr' && parseInt(userId as string) !== currentUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
       
       if (date) {
         attendance = await storage.getAttendanceByDate(date as string);
+        // Filter for non-HR users to only see their own records
+        if (currentUserRole !== 'hr') {
+          attendance = attendance.filter(att => att.userId === currentUserId);
+        }
       } else if (userId) {
         attendance = await storage.getAttendanceByUser(parseInt(userId as string));
       } else {
         attendance = await storage.getTodayAttendance();
+        // Filter for non-HR users to only see their own records
+        if (currentUserRole !== 'hr') {
+          attendance = attendance.filter(att => att.userId === currentUserId);
+        }
       }
 
       // Join with user data
@@ -143,51 +278,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(attendanceWithUsers);
     } catch (error) {
+      console.error('Fetch attendance error:', error);
       res.status(500).json({ message: "Failed to fetch attendance" });
     }
   });
 
-  app.post("/api/attendance", async (req, res) => {
+  app.post("/api/attendance", authenticateToken, requireHR, async (req, res) => {
     try {
       const attendanceData = insertAttendanceSchema.parse(req.body);
       const attendance = await storage.createAttendance(attendanceData);
       res.status(201).json(attendance);
     } catch (error) {
+      console.error('Create attendance error:', error);
       res.status(400).json({ message: "Invalid attendance data" });
     }
   });
 
-  app.put("/api/attendance/:id", async (req, res) => {
+  app.put("/api/attendance/:id", authenticateToken, requireHR, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
+      
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid attendance ID" });
+      }
+      
       const attendance = await storage.updateAttendance(id, updateData);
       if (!attendance) {
         return res.status(404).json({ message: "Attendance record not found" });
       }
       res.json(attendance);
     } catch (error) {
+      console.error('Update attendance error:', error);
       res.status(500).json({ message: "Failed to update attendance" });
     }
   });
 
-  app.delete("/api/attendance/:id", async (req, res) => {
+  app.delete("/api/attendance/:id", authenticateToken, requireHR, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ message: "Invalid attendance ID" });
+      }
+      
       const deleted = await storage.deleteAttendance(id);
       if (!deleted) {
         return res.status(404).json({ message: "Attendance record not found" });
       }
       res.json({ message: "Attendance record deleted" });
     } catch (error) {
+      console.error('Delete attendance error:', error);
       res.status(500).json({ message: "Failed to delete attendance" });
     }
   });
 
   // Check-in/Check-out routes
-  app.post("/api/attendance/checkin", async (req, res) => {
+  app.post("/api/attendance/checkin", authenticateToken, async (req, res) => {
     try {
       const { userId, location } = req.body;
+      const currentUserId = req.user?.id;
+      const currentUserRole = req.user?.role;
+      
+      // Users can only check themselves in unless they're HR
+      if (currentUserRole !== 'hr' && userId !== currentUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
       const today = new Date().toISOString().split('T')[0];
       
       // Check if already checked in today
@@ -218,13 +379,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(attendance);
     } catch (error) {
+      console.error('Check-in error:', error);
       res.status(500).json({ message: "Check-in failed" });
     }
   });
 
-  app.post("/api/attendance/checkout", async (req, res) => {
+  app.post("/api/attendance/checkout", authenticateToken, async (req, res) => {
     try {
       const { userId } = req.body;
+      const currentUserId = req.user?.id;
+      const currentUserRole = req.user?.role;
+      
+      // Users can only check themselves out unless they're HR
+      if (currentUserRole !== 'hr' && userId !== currentUserId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
       const today = new Date().toISOString().split('T')[0];
       
       const existing = await storage.getAttendanceByDate(today);
@@ -251,6 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(attendance);
     } catch (error) {
+      console.error('Check-out error:', error);
       res.status(500).json({ message: "Check-out failed" });
     }
   });

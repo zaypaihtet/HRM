@@ -20,6 +20,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { hashPassword } from "./utils/password";
 
 export interface IStorage {
   // Users
@@ -89,10 +90,14 @@ export class DatabaseStorage implements IStorage {
 
   private async seedData() {
     try {
+      // Hash passwords for seed data
+      const adminHashedPassword = await hashPassword("admin123");
+      const employeeHashedPassword = await hashPassword("password123");
+      
       // Create HR admin user
       const hrUser = await db.insert(users).values({
         username: "admin",
-        password: "admin123",
+        password: adminHashedPassword,
         role: "hr",
         name: "Admin User",
         email: "admin@hrflow.com",
@@ -105,7 +110,7 @@ export class DatabaseStorage implements IStorage {
       const employeeData = [
         {
           username: "john.smith",
-          password: "password123",
+          password: employeeHashedPassword,
           name: "John Smith",
           email: "john.smith@company.com",
           department: "Engineering",
@@ -114,7 +119,7 @@ export class DatabaseStorage implements IStorage {
         },
         {
           username: "sarah.johnson",
-          password: "password123",
+          password: employeeHashedPassword,
           name: "Sarah Johnson",
           email: "sarah.johnson@company.com",
           department: "Design",
@@ -123,7 +128,7 @@ export class DatabaseStorage implements IStorage {
         },
         {
           username: "mike.brown",
-          password: "password123",
+          password: employeeHashedPassword,
           name: "Mike Brown",
           email: "mike.brown@company.com",
           department: "Management",

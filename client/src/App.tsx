@@ -38,7 +38,7 @@ function LoginForm() {
       return response.json();
     },
     onSuccess: (data) => {
-      login(data.user);
+      login(data.user, data.token);
       toast({
         title: "Login successful",
         description: `Welcome back, ${data.user.name}!`,
