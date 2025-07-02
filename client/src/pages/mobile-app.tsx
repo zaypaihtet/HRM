@@ -26,10 +26,21 @@ export default function MobileApp() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [activeTab, setActiveTab] = useState("home");
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isInZone, setIsInZone] = useState<boolean | null>(null);
+  const [userCoordinates, setUserCoordinates] = useState<{lat: number, lng: number} | null>(null);
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { notifications, unreadCount, markAsRead, clearNotification } = useNotifications();
+
+  // Fetch check-in zones and working hours
+  const { data: checkinZones = [] } = useQuery<any[]>({
+    queryKey: ["/api/checkin-zones"],
+  });
+
+  const { data: workingHours = [] } = useQuery<any[]>({
+    queryKey: ["/api/working-hours"],
+  });
 
   // Real-time clock update
   useEffect(() => {
@@ -39,15 +50,52 @@ export default function MobileApp() {
     return () => clearInterval(timer);
   }, []);
 
-  // Real-time location tracking
+  // Zone validation function
+  const checkIfInZone = (userLat: number, userLng: number, zones: any[]) => {
+    if (!zones || zones.length === 0) return false;
+    
+    for (const zone of zones) {
+      const zoneLat = parseFloat(zone.latitude);
+      const zoneLng = parseFloat(zone.longitude);
+      const radius = zone.radius; // in meters
+      
+      // Calculate distance using Haversine formula
+      const R = 6371000; // Earth's radius in meters
+      const dLat = (zoneLat - userLat) * Math.PI / 180;
+      const dLng = (zoneLng - userLng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(userLat * Math.PI / 180) * Math.cos(zoneLat * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      
+      if (distance <= radius) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Real-time location tracking with zone validation
   useEffect(() => {
     const updateLocation = async () => {
       try {
         setIsLoadingLocation(true);
+        const coords = await getCurrentLocation();
         const location = await getLocationString();
         setCurrentLocation(location);
+        setUserCoordinates({ lat: coords.latitude, lng: coords.longitude });
+        
+        // Check if user is in any check-in zone
+        if (Array.isArray(checkinZones) && checkinZones.length > 0) {
+          const inZone = checkIfInZone(coords.latitude, coords.longitude, checkinZones);
+          setIsInZone(inZone);
+        } else {
+          setIsInZone(false);
+        }
       } catch (error) {
         setCurrentLocation("Location unavailable");
+        setIsInZone(false);
       } finally {
         setIsLoadingLocation(false);
       }
@@ -56,7 +104,7 @@ export default function MobileApp() {
     updateLocation();
     const locationTimer = setInterval(updateLocation, 30000);
     return () => clearInterval(locationTimer);
-  }, []);
+  }, [checkinZones]);
 
   // Network status monitoring
   useEffect(() => {
@@ -330,6 +378,33 @@ export default function MobileApp() {
                     </div>
                   </Link>
                 </div>
+
+                {/* Zone Validation Status */}
+                {!isLoadingLocation && (
+                  <motion.div 
+                    className="flex items-center justify-center mt-3"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    {isInZone === true ? (
+                      <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-xs font-medium text-green-800">In Check-in Zone</span>
+                      </div>
+                    ) : isInZone === false ? (
+                      <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                        <XCircle className="w-4 h-4 text-red-600" />
+                        <span className="text-xs font-medium text-red-800">Not in Zone</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                        <MapPin className="w-4 h-4 text-gray-600" />
+                        <span className="text-xs font-medium text-gray-800">Checking zone...</span>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           </motion.div>
@@ -352,9 +427,13 @@ export default function MobileApp() {
                     exit={{ opacity: 0, y: -20 }}
                   >
                     <Button 
-                      className="w-full h-16 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-2xl shadow-xl text-lg"
+                      className={`w-full h-16 font-bold rounded-2xl shadow-xl text-lg ${
+                        isInZone === false 
+                          ? 'bg-gray-400 hover:bg-gray-500 text-gray-700' 
+                          : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
+                      }`}
                       onClick={() => checkInMutation.mutate()}
-                      disabled={checkInMutation.isPending || !workingStatus.canCheckIn || !isOnline}
+                      disabled={checkInMutation.isPending || !workingStatus.canCheckIn || !isOnline || isInZone === false}
                     >
                       {checkInMutation.isPending ? (
                         <div className="flex items-center space-x-3">
@@ -371,6 +450,11 @@ export default function MobileApp() {
                     {!workingStatus.canCheckIn && (
                       <p className="text-xs text-center text-gray-500">
                         Check-in available during working hours
+                      </p>
+                    )}
+                    {isInZone === false && (
+                      <p className="text-xs text-center text-red-600 font-medium">
+                        Must be in designated check-in zone to continue
                       </p>
                     )}
                   </motion.div>

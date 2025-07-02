@@ -224,6 +224,14 @@ Preferred communication style: Simple, everyday language.
 - **Notification Management**: Users can mark as read, clear individual notifications, or view detailed status
 - **Professional UI**: Animated notification panel with color-coded status indicators and action buttons
 
+### Zone-Based Check-in Validation (July 02, 2025)
+- **Real-Time Zone Detection**: Mobile app continuously monitors user location and validates against HR-configured check-in zones
+- **Visual Zone Status**: Displays "In Check-in Zone" (green) or "Not in Zone" (red) indicator with animated status updates
+- **Location-Based Security**: Check-in button disabled when user is outside designated zones, preventing unauthorized attendance
+- **Geofence Integration**: Uses Haversine formula to calculate distance from user to zone centers with configurable radius validation
+- **Working Hours Integration**: Combines zone validation with working hours system for comprehensive attendance control
+- **Professional UI**: Color-coded status indicators with smooth animations and clear messaging for zone compliance
+
 ## Changelog
 
 Changelog:
