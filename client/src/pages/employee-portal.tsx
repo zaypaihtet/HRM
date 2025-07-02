@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, User, MapPin, Clock, Calendar, Edit, LogOut, Users, Activity } from "lucide-react";
+import { Bell, User, MapPin, Clock, Calendar, Edit, LogOut, Users, Activity, PartyPopper, Coffee, Smile } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EmployeePortal() {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [showHolidayAnimation, setShowHolidayAnimation] = useState(false);
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -26,8 +27,26 @@ export default function EmployeePortal() {
     queryKey: ["/api/attendance", user?.id],
   });
 
+  const { data: holidays, isLoading: holidaysLoading } = useQuery({
+    queryKey: ["/api/holidays"],
+  });
+
   const today = new Date().toISOString().split('T')[0];
   const todayAttendance = myAttendance?.find((a: any) => a.date === today);
+  
+  // Check if today is a holiday
+  const todayHoliday = holidays?.find((h: any) => h.date === today && h.isActive);
+  const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6; // Sunday = 0, Saturday = 6
+  const isOffDay = todayHoliday || isWeekend;
+
+  // Animation effect for off days
+  useEffect(() => {
+    if (isOffDay) {
+      setShowHolidayAnimation(true);
+      const timer = setTimeout(() => setShowHolidayAnimation(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOffDay]);
 
   const checkInMutation = useMutation({
     mutationFn: async () => {

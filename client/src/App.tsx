@@ -11,6 +11,7 @@ import Requests from "@/pages/requests";
 import Holidays from "@/pages/holidays";
 import CheckinZones from "@/pages/checkin-zones";
 import EmployeeReports from "@/pages/employee-reports";
+import Employees from "@/pages/employees";
 import Mobile from "@/pages/mobile";
 import EmployeePortal from "@/pages/employee-portal";
 import Sidebar from "@/components/layout/sidebar";
@@ -125,10 +126,10 @@ function AppLayout() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <div className="flex-1 md:ml-64">
-        <Header />
         <main className="p-6">
           <Switch>
             <Route path="/" component={Dashboard} />
+            <Route path="/employees" component={Employees} />
             <Route path="/attendance" component={Attendance} />
             <Route path="/payroll" component={Payroll} />
             <Route path="/requests" component={Requests} />
