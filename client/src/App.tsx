@@ -186,6 +186,22 @@ function AppContent() {
     return <LoginForm />;
   }
 
+  // Redirect employees to mobile app
+  if (user.role === 'employee') {
+    return (
+      <Switch>
+        <Route path="/mobile-app" component={MobileApp} />
+        <Route path="/mobile-requests" component={MobileRequests} />
+        <Route path="/mobile-location" component={MobileLocation} />
+        <Route path="/mobile-attendance" component={MobileAttendance} />
+        <Route path="/mobile-leave" component={MobileLeave} />
+        <Route path="/mobile-holidays" component={MobileHolidays} />
+        <Route path="/mobile-profile" component={MobileProfile} />
+        <Route component={MobileApp} />
+      </Switch>
+    );
+  }
+
   return <AppLayout />;
 }
 

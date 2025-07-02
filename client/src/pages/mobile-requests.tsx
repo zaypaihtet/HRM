@@ -77,7 +77,7 @@ export default function MobileRequests() {
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <Link href="/mobile">
+              <Link href="/mobile-app">
                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 p-2">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>

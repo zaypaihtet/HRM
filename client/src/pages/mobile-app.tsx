@@ -79,7 +79,7 @@ export default function MobileApp() {
   });
 
   // Get user requests
-  const { data: userRequests } = useQuery({
+  const { data: userRequests = [] } = useQuery({
     queryKey: ["/api/requests", { userId: user?.id }],
     enabled: !!user?.id && isOnline,
   });
@@ -178,8 +178,7 @@ export default function MobileApp() {
   ];
 
   const menuItems = [
-    { icon: Activity, title: "My Requests", subtitle: "View all submissions", href: "/mobile-requests" },
-    { icon: Calendar, title: "Attendance Report", subtitle: "Track work hours", href: "/mobile-attendance" },
+    { icon: Calendar, title: "Att Report", subtitle: "Track work hours", href: "/mobile-attendance" },
     { icon: MapPin, title: "Live Location", subtitle: "GPS & check-in zones", href: "/mobile-location" },
     { icon: Coffee, title: "Holidays", subtitle: "Company holidays", href: "/mobile-holidays" },
   ];
@@ -187,28 +186,9 @@ export default function MobileApp() {
   return (
     <>
       {/* Mobile App Container */}
-      <div className="max-w-sm mx-auto bg-black min-h-screen relative overflow-hidden">
-        {/* Status Bar */}
-        <div className="flex items-center justify-between px-6 py-2 bg-black text-white text-xs">
-          <div className="flex items-center space-x-1">
-            <span className="font-medium">9:41</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            {isOnline ? (
-              <div className="flex space-x-1">
-                <div className="w-1 h-1 bg-white rounded-full"></div>
-                <div className="w-1 h-2 bg-white rounded-full"></div>
-                <div className="w-1 h-3 bg-white rounded-full"></div>
-                <div className="w-1 h-4 bg-white rounded-full"></div>
-              </div>
-            ) : (
-              <WifiOff className="w-4 h-4" />
-            )}
-            <div className="w-6 h-3 border border-white rounded-sm">
-              <div className="w-4 h-1.5 bg-white rounded-sm m-0.5"></div>
-            </div>
-          </div>
-        </div>
+      <div className="w-full sm:max-w-sm mx-auto bg-black min-h-screen relative overflow-hidden">
+        {/* Status Bar - Hidden on mobile as requested */}
+        <div className="hidden"></div>
 
         {/* App Content */}
         <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-t-3xl min-h-screen">
@@ -245,11 +225,11 @@ export default function MobileApp() {
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                       <Bell className="w-5 h-5" />
                     </div>
-                    {userRequests && Array.isArray(userRequests) && userRequests.length > 0 && (
+                    {Array.isArray(userRequests) && userRequests.length > 0 ? (
                       <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold text-white">{Array.isArray(userRequests) ? userRequests.length : 0}</span>
+                        <span className="text-xs font-bold text-white">{userRequests.length}</span>
                       </div>
-                    )}
+                    ) : null}
                   </motion.div>
                   
                   <Link href="/mobile-profile">
@@ -456,15 +436,29 @@ export default function MobileApp() {
               <div className="grid grid-cols-2 gap-4">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
-                  const ActionComponent = action.href ? Link : motion.button;
-                  const actionProps = action.href 
-                    ? { href: action.href }
-                    : { onClick: action.action };
                   
-                  return (
-                    <ActionComponent
+                  return action.href ? (
+                    <Link key={index} href={action.href}>
+                      <motion.div
+                        className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.95 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.9 + index * 0.1 }}
+                      >
+                        <div className={`w-14 h-14 ${action.lightBg} rounded-2xl flex items-center justify-center mb-4`}>
+                          <Icon className="w-7 h-7" style={{ color: action.color }} />
+                        </div>
+                        <h4 className="font-bold text-gray-800 mb-1">{action.title}</h4>
+                        <p className="text-xs text-gray-500">{action.subtitle}</p>
+                      </motion.div>
+                    </Link>
+                  ) : (
+                    <motion.button
                       key={index}
-                      {...actionProps}
+                      onClick={action.action}
+                      className="text-left"
                     >
                       <motion.div
                         className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100"
@@ -480,7 +474,7 @@ export default function MobileApp() {
                         <h4 className="font-bold text-gray-800 mb-1">{action.title}</h4>
                         <p className="text-xs text-gray-500">{action.subtitle}</p>
                       </motion.div>
-                    </ActionComponent>
+                    </motion.button>
                   );
                 })}
               </div>
