@@ -6,6 +6,7 @@ import {
   holidays,
   checkinZones,
   workingHours,
+  systemSettings,
   type User, 
   type InsertUser,
   type Attendance,
@@ -19,7 +20,9 @@ import {
   type CheckinZone,
   type InsertCheckinZone,
   type WorkingHours,
-  type InsertWorkingHours
+  type InsertWorkingHours,
+  type SystemSettings,
+  type InsertSystemSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -76,6 +79,11 @@ export interface IStorage {
   // Working Hours
   getWorkingHours(): Promise<WorkingHours[]>;
   createWorkingHours(workingHours: InsertWorkingHours): Promise<WorkingHours>;
+
+  // System Settings
+  getSystemSettings(): Promise<SystemSettings | undefined>;
+  updateSystemSettings(settings: Partial<InsertSystemSettings>): Promise<SystemSettings | undefined>;
+  createSystemSettings(settings: InsertSystemSettings): Promise<SystemSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -391,6 +399,30 @@ export class DatabaseStorage implements IStorage {
     // Insert new working hours
     const [newWorkingHours] = await db.insert(workingHours).values(insertWorkingHours).returning();
     return newWorkingHours;
+  }
+
+  async getSystemSettings(): Promise<SystemSettings | undefined> {
+    const result = await db.select().from(systemSettings).limit(1);
+    return result[0] || undefined;
+  }
+
+  async updateSystemSettings(updateSettings: Partial<InsertSystemSettings>): Promise<SystemSettings | undefined> {
+    const existing = await this.getSystemSettings();
+    if (existing) {
+      const [updated] = await db.update(systemSettings).set({
+        ...updateSettings,
+        updatedAt: new Date()
+      }).where(eq(systemSettings.id, existing.id)).returning();
+      return updated;
+    } else {
+      // Create new settings if none exist
+      return await this.createSystemSettings(updateSettings as InsertSystemSettings);
+    }
+  }
+
+  async createSystemSettings(insertSettings: InsertSystemSettings): Promise<SystemSettings> {
+    const [newSettings] = await db.insert(systemSettings).values(insertSettings).returning();
+    return newSettings;
   }
 }
 

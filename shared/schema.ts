@@ -86,6 +86,23 @@ export const workingHours = pgTable("working_hours", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  appName: text("app_name").notNull().default("HRFlow"),
+  appLogo: text("app_logo"), // URL or base64 encoded image
+  primaryColor: text("primary_color").default("#3B82F6"),
+  secondaryColor: text("secondary_color").default("#1E40AF"),
+  companyName: text("company_name").default("Your Company"),
+  companyAddress: text("company_address"),
+  companyEmail: text("company_email"),
+  companyPhone: text("company_phone"),
+  timezone: text("timezone").default("UTC"),
+  dateFormat: text("date_format").default("MM/DD/YYYY"),
+  currency: text("currency").default("USD"),
+  createdBy: integer("created_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -121,6 +138,11 @@ export const insertWorkingHoursSchema = createInsertSchema(workingHours).omit({
   updatedAt: true,
 });
 
+export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Attendance = typeof attendance.$inferSelect;
@@ -135,3 +157,5 @@ export type CheckinZone = typeof checkinZones.$inferSelect;
 export type InsertCheckinZone = z.infer<typeof insertCheckinZoneSchema>;
 export type WorkingHours = typeof workingHours.$inferSelect;
 export type InsertWorkingHours = z.infer<typeof insertWorkingHoursSchema>;
+export type SystemSettings = typeof systemSettings.$inferSelect;
+export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;

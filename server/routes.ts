@@ -1266,7 +1266,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // System Settings routes
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      if (!settings) {
+        // Return default settings if none exist
+        return res.json({
+          appName: 'HRFlow',
+          appLogo: null,
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF',
+          companyName: 'Your Company',
+          companyAddress: null,
+          companyEmail: null,
+          companyPhone: null,
+          timezone: 'UTC',
+          dateFormat: 'MM/DD/YYYY',
+          currency: 'USD'
+        });
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error('Get system settings error:', error);
+      res.status(500).json({ message: "Failed to fetch system settings" });
+    }
+  });
 
+  app.put("/api/settings", authenticateToken, requireHR, async (req, res) => {
+    try {
+      const updateData = {
+        ...req.body,
+        createdBy: req.user!.id
+      };
+      
+      const settings = await storage.updateSystemSettings(updateData);
+      if (!settings) {
+        return res.status(404).json({ message: "Settings not found" });
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error('Update system settings error:', error);
+      res.status(500).json({ message: "Failed to update system settings" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

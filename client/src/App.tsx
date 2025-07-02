@@ -14,6 +14,7 @@ import EmployeeReports from "@/pages/employee-reports";
 import Employees from "@/pages/employees";
 import WorkingHours from "@/pages/working-hours";
 import Calculations from "@/pages/calculations";
+import SystemSettings from "@/pages/system-settings";
 import Mobile from "@/pages/mobile";
 import MobileReal from "@/pages/mobile-real";
 import MobileRequests from "@/pages/mobile-requests";
@@ -161,6 +162,7 @@ function AppLayout() {
             <Route path="/working-hours" component={WorkingHours} />
             <Route path="/calculations" component={Calculations} />
             <Route path="/employee-reports" component={EmployeeReports} />
+            <Route path="/settings" component={SystemSettings} />
             <Route path="/mobile" component={Mobile} />
             <Route component={Dashboard} />
           </Switch>
