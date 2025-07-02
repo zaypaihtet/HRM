@@ -787,23 +787,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/working-hours", requireHR, async (req, res) => {
+  app.post("/api/working-hours", authenticateToken, requireHR, async (req, res) => {
     try {
-      const requestData = { ...req.body };
+      // Transform the data before validation
+      const transformedData = {
+        startTime: req.body.startTime,
+        endTime: req.body.endTime,
+        workDays: Array.isArray(req.body.workDays) ? req.body.workDays.join(',') : req.body.workDays,
+        breakDuration: typeof req.body.breakDuration === 'string' ? parseInt(req.body.breakDuration) : req.body.breakDuration,
+        isActive: req.body.isActive !== undefined ? req.body.isActive : true,
+        createdBy: req.user!.id
+      };
       
-      // Convert numeric fields to match schema expectations
-      if (requestData.breakDuration && typeof requestData.breakDuration === 'string') {
-        requestData.breakDuration = parseInt(requestData.breakDuration);
-      }
-      
-      // Ensure workDays is an array of numbers
-      if (requestData.workDays && typeof requestData.workDays === 'string') {
-        requestData.workDays = JSON.parse(requestData.workDays);
-      }
-      
-      const workingHoursData = insertWorkingHoursSchema.parse(requestData);
-      workingHoursData.createdBy = req.user!.id;
-      const workingHours = await storage.createWorkingHours(workingHoursData);
+      const workingHours = await storage.createWorkingHours(transformedData);
       res.status(201).json(workingHours);
     } catch (error: any) {
       console.error('Create working hours error:', error);
@@ -982,25 +978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Working Hours routes
-  app.get("/api/working-hours", async (req, res) => {
-    try {
-      const workingHours = await storage.getWorkingHours();
-      res.json(workingHours);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch working hours" });
-    }
-  });
 
-  app.post("/api/working-hours", requireHR, async (req, res) => {
-    try {
-      const workingHoursData = req.body;
-      const workingHours = await storage.createWorkingHours(workingHoursData);
-      res.status(201).json(workingHours);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid working hours data" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;

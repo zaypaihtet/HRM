@@ -21,14 +21,17 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
+    console.log('No token provided for:', req.method, req.path);
     return res.status(401).json({ message: 'Access token required' });
   }
 
   jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
     if (err) {
+      console.log('Token verification failed for:', req.method, req.path, 'Error:', err.message);
       return res.status(403).json({ message: 'Invalid or expired token' });
     }
     
+    console.log('Authentication successful for user:', user.username, 'accessing:', req.method, req.path);
     req.user = user;
     next();
   });
