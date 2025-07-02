@@ -2,15 +2,17 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, User, MapPin, Clock, Calendar, Edit, Loader2, CheckCircle, LogOut, LogIn, Wifi, WifiOff } from "lucide-react";
+import { Bell, User, MapPin, Clock, Calendar, Edit, Loader2, CheckCircle, LogOut, LogIn, Wifi, WifiOff, List, ArrowRight, Plus } from "lucide-react";
 import Header from "@/components/layout/header";
 import RequestModal from "@/components/modals/request-modal";
+import SimpleLocation from "@/components/location/simple-location";
 import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { getCurrentLocation, getLocationString } from "@/lib/geolocation";
 import { getWorkingStatus, formatWorkingHours, DEFAULT_WORKING_HOURS } from "@/lib/working-hours";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 export default function MobileReal() {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -486,14 +488,37 @@ export default function MobileReal() {
             </div>
           </motion.div>
 
-          {/* Recent Requests */}
+          {/* Location & Zone Status */}
           <motion.div 
-            className="p-6 mx-4 mt-4 mb-6 bg-gray-50 rounded-2xl"
+            className="p-6 mx-4 mt-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Requests</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Location & Check-in Zones</h3>
+            <SimpleLocation 
+              className="w-full" 
+              showCheckinZones={true}
+            />
+          </motion.div>
+
+          {/* Recent Requests with View All */}
+          <motion.div 
+            className="p-6 mx-4 mt-4 mb-6 bg-gray-50 rounded-2xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.9 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Recent Requests</h3>
+              <Link href="/mobile-requests">
+                <Button variant="ghost" size="sm" className="text-blue-600">
+                  <List className="w-4 h-4 mr-1" />
+                  View All
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
             <div className="space-y-3">
               {Array.isArray(userRequests) && userRequests.length > 0 ? (
                 userRequests.slice(0, 3).map((request: any, index: number) => (
@@ -502,7 +527,7 @@ export default function MobileReal() {
                     className="p-4 bg-white rounded-xl shadow-sm"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.9 + index * 0.1 }}
+                    transition={{ delay: 1.0 + index * 0.1 }}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -525,10 +550,16 @@ export default function MobileReal() {
                   className="text-center py-8 text-gray-500"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.9 }}
+                  transition={{ delay: 1.0 }}
                 >
                   <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p>No recent requests</p>
+                  <Link href="/mobile-requests">
+                    <Button variant="outline" size="sm" className="mt-3">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Create Request
+                    </Button>
+                  </Link>
                 </motion.div>
               )}
             </div>

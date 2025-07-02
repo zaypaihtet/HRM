@@ -69,6 +69,10 @@ export interface IStorage {
   createCheckinZone(zone: InsertCheckinZone): Promise<CheckinZone>;
   updateCheckinZone(id: number, zone: Partial<InsertCheckinZone>): Promise<CheckinZone | undefined>;
   deleteCheckinZone(id: number): Promise<boolean>;
+
+  // Working Hours
+  getWorkingHours(): Promise<WorkingHours[]>;
+  createWorkingHours(workingHours: InsertWorkingHours): Promise<WorkingHours>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -359,6 +363,20 @@ export class DatabaseStorage implements IStorage {
   async deleteCheckinZone(id: number): Promise<boolean> {
     const result = await db.update(checkinZones).set({ isActive: false }).where(eq(checkinZones.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  async getWorkingHours(): Promise<WorkingHours[]> {
+    const result = await db.select().from(workingHours).where(eq(workingHours.isActive, true));
+    return result;
+  }
+
+  async createWorkingHours(insertWorkingHours: InsertWorkingHours): Promise<WorkingHours> {
+    // Deactivate existing working hours
+    await db.update(workingHours).set({ isActive: false });
+    
+    // Insert new working hours
+    const [newWorkingHours] = await db.insert(workingHours).values(insertWorkingHours).returning();
+    return newWorkingHours;
   }
 }
 

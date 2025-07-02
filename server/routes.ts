@@ -731,6 +731,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Working Hours routes
+  app.get("/api/working-hours", async (req, res) => {
+    try {
+      const workingHours = await storage.getWorkingHours();
+      res.json(workingHours);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch working hours" });
+    }
+  });
+
+  app.post("/api/working-hours", requireHR, async (req, res) => {
+    try {
+      const workingHoursData = req.body;
+      const workingHours = await storage.createWorkingHours(workingHoursData);
+      res.status(201).json(workingHours);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid working hours data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
