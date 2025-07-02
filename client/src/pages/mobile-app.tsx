@@ -172,15 +172,16 @@ export default function MobileApp() {
       color: "#10B981",
       bgColor: "bg-green-500",
       lightBg: "bg-green-50",
+      href: "/mobile-location",
       action: () => {},
     },
   ];
 
   const menuItems = [
     { icon: Activity, title: "My Requests", subtitle: "View all submissions", href: "/mobile-requests" },
-    { icon: Calendar, title: "Attendance Report", subtitle: "Track work hours", href: "/attendance" },
+    { icon: Calendar, title: "Attendance Report", subtitle: "Track work hours", href: "/mobile-attendance" },
     { icon: MapPin, title: "Live Location", subtitle: "GPS & check-in zones", href: "/mobile-location" },
-    { icon: Coffee, title: "Holidays", subtitle: "Company holidays", href: "/holidays" },
+    { icon: Coffee, title: "Holidays", subtitle: "Company holidays", href: "/mobile-holidays" },
   ];
 
   return (
@@ -251,14 +252,15 @@ export default function MobileApp() {
                     )}
                   </motion.div>
                   
-                  <motion.button
-                    onClick={logout}
-                    className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </motion.button>
+                  <Link href="/mobile-profile">
+                    <motion.div
+                      className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <User className="w-5 h-5" />
+                    </motion.div>
+                  </Link>
                 </div>
               </div>
 
@@ -454,23 +456,31 @@ export default function MobileApp() {
               <div className="grid grid-cols-2 gap-4">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
+                  const ActionComponent = action.href ? Link : motion.button;
+                  const actionProps = action.href 
+                    ? { href: action.href }
+                    : { onClick: action.action };
+                  
                   return (
-                    <motion.button
+                    <ActionComponent
                       key={index}
-                      className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100"
-                      onClick={action.action}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.95 }}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.9 + index * 0.1 }}
+                      {...actionProps}
                     >
-                      <div className={`w-14 h-14 ${action.lightBg} rounded-2xl flex items-center justify-center mb-4`}>
-                        <Icon className="w-7 h-7" style={{ color: action.color }} />
-                      </div>
-                      <h4 className="font-bold text-gray-800 mb-1">{action.title}</h4>
-                      <p className="text-xs text-gray-500">{action.subtitle}</p>
-                    </motion.button>
+                      <motion.div
+                        className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.95 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.9 + index * 0.1 }}
+                      >
+                        <div className={`w-14 h-14 ${action.lightBg} rounded-2xl flex items-center justify-center mb-4`}>
+                          <Icon className="w-7 h-7" style={{ color: action.color }} />
+                        </div>
+                        <h4 className="font-bold text-gray-800 mb-1">{action.title}</h4>
+                        <p className="text-xs text-gray-500">{action.subtitle}</p>
+                      </motion.div>
+                    </ActionComponent>
                   );
                 })}
               </div>

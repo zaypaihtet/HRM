@@ -17,6 +17,10 @@ import MobileReal from "@/pages/mobile-real";
 import MobileRequests from "@/pages/mobile-requests";
 import MobileApp from "@/pages/mobile-app";
 import MobileLocation from "@/pages/mobile-location";
+import MobileAttendance from "@/pages/mobile-attendance";
+import MobileLeave from "@/pages/mobile-leave";
+import MobileHolidays from "@/pages/mobile-holidays";
+import MobileProfile from "@/pages/mobile-profile";
 import EmployeePortal from "@/pages/employee-portal";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -128,6 +132,10 @@ function AppLayout() {
         <Route path="/mobile-real" component={MobileReal} />
         <Route path="/mobile-requests" component={MobileRequests} />
         <Route path="/mobile-location" component={MobileLocation} />
+        <Route path="/mobile-attendance" component={MobileAttendance} />
+        <Route path="/mobile-leave" component={MobileLeave} />
+        <Route path="/mobile-holidays" component={MobileHolidays} />
+        <Route path="/mobile-profile" component={MobileProfile} />
         <Route path="/mobile-app" component={MobileApp} />
         <Route path="/mobile" component={Mobile} />
         <Route component={EmployeePortal} />

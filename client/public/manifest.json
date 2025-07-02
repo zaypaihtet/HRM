@@ -1,0 +1,32 @@
+{
+  "name": "HRFlow Mobile - Employee App",
+  "short_name": "HRFlow",
+  "description": "Professional HR Management System for Employees - Attendance, Leave, Location Tracking",
+  "start_url": "/mobile-app",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "features": [
+    "Location Services",
+    "Offline Support", 
+    "Push Notifications",
+    "Background Sync"
+  ],
+  "categories": ["business", "productivity", "utilities"]
+}
