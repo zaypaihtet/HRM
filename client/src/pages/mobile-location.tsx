@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Navigation, Target } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import RealTimeMap from "@/components/location/real-time-map";
+import SimpleLocation from "@/components/location/simple-location";
 
 export default function MobileLocation() {
   return (
@@ -48,14 +48,14 @@ export default function MobileLocation() {
           </div>
         </motion.div>
 
-        {/* Map Section */}
+        {/* Location Section */}
         <motion.div 
           className="p-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <RealTimeMap className="w-full" />
+          <SimpleLocation className="w-full" />
         </motion.div>
 
         {/* Instructions */}
