@@ -76,19 +76,30 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private initialized = false;
+
   constructor() {
-    this.initializeData();
+    // Don't run async operations in constructor
   }
 
-  private async initializeData() {
+  async initialize() {
+    if (this.initialized) return;
+    
     try {
+      console.log("Initializing database storage...");
       // Check if admin user exists, if not seed data
       const adminUser = await this.getUserByUsername("admin");
       if (!adminUser) {
+        console.log("Admin user not found, seeding data...");
         await this.seedData();
+      } else {
+        console.log("Database already initialized");
       }
+      this.initialized = true;
+      console.log("Database storage initialized successfully");
     } catch (error) {
       console.error("Error initializing data:", error);
+      throw error;
     }
   }
 
