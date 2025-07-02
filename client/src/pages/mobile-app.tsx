@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { 
   Bell, User, MapPin, Clock, Calendar, Edit, Loader2, CheckCircle, 
   LogOut, LogIn, Wifi, WifiOff, ArrowRight, Plus, Home, Activity,
-  Settings, ChevronRight, Navigation, Target, Zap, Coffee
+  Settings, ChevronRight, Navigation, Target, Zap, Coffee, XCircle
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import RequestModal from "@/components/modals/request-modal";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export default function MobileApp() {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -24,9 +25,11 @@ export default function MobileApp() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [activeTab, setActiveTab] = useState("home");
+  const [showNotifications, setShowNotifications] = useState(false);
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { notifications, unreadCount, markAsRead, clearNotification } = useNotifications();
 
   // Real-time clock update
   useEffect(() => {
@@ -218,18 +221,28 @@ export default function MobileApp() {
                 
                 <div className="flex items-center space-x-3">
                   <motion.div
-                    className="relative"
+                    className="relative cursor-pointer"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowNotifications(!showNotifications)}
                   >
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                       <Bell className="w-5 h-5" />
                     </div>
-                    {Array.isArray(userRequests) && userRequests.length > 0 ? (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold text-white">{userRequests.length}</span>
-                      </div>
-                    ) : null}
+                    <AnimatePresence>
+                      {unreadCount > 0 && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0 }}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+                        >
+                          <span className="text-xs font-bold text-white">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                   
                   <Link href="/mobile-profile">
@@ -522,6 +535,136 @@ export default function MobileApp() {
           </div>
         </div>
       </div>
+
+      {/* Notification Panel */}
+      <AnimatePresence>
+        {showNotifications && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowNotifications(false)}
+            />
+
+            {/* Notification Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="fixed top-4 left-4 right-4 bg-white rounded-2xl shadow-2xl border z-50 max-h-96 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="p-4 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-lg">Notifications</h3>
+                    <p className="text-sm opacity-90">
+                      {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowNotifications(false)}
+                    className="text-white hover:bg-white hover:bg-opacity-20 p-2 h-8 w-8"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Notifications List */}
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500">
+                    <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No notifications yet</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      We'll notify you about request updates
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {notifications.map((notification) => (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`p-4 ${notification.read ? 'bg-gray-50' : 'bg-white border-l-4 border-l-blue-500'}`}
+                        onClick={() => {
+                          if (!notification.read) {
+                            markAsRead(notification.id);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0 mt-1">
+                            {notification.type === 'request_approved' ? (
+                              <CheckCircle className="w-5 h-5 text-green-500" />
+                            ) : notification.type === 'request_rejected' ? (
+                              <XCircle className="w-5 h-5 text-red-500" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-blue-500" />
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium ${notification.read ? 'text-gray-600' : 'text-gray-900'}`}>
+                              {notification.title}
+                            </p>
+                            <p className={`text-sm mt-1 ${notification.read ? 'text-gray-500' : 'text-gray-700'}`}>
+                              {notification.message}
+                            </p>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex items-center space-x-2 mt-3">
+                              {notification.redirectUrl && (
+                                <Link href={notification.redirectUrl}>
+                                  <Button
+                                    size="sm"
+                                    className="text-xs px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowNotifications(false);
+                                    }}
+                                  >
+                                    View Details
+                                  </Button>
+                                </Link>
+                              )}
+                              
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  clearNotification(notification.id);
+                                }}
+                              >
+                                Clear
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {!notification.read && (
+                            <div className="flex-shrink-0">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <RequestModal 
         isOpen={isRequestModalOpen} 

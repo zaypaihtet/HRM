@@ -201,6 +201,14 @@ Preferred communication style: Simple, everyday language.
 - **Audit Trail**: All automatically created attendance records include detailed notes linking back to the original request for full traceability
 - **Working Hours Integration**: Uses configured company working hours and excludes non-working days (Mondays) from automatic attendance creation
 
+### Real-Time Notification System (July 02, 2025)
+- **Bell Notifications**: Mobile app displays live notification bell with unread count badges
+- **Request Status Alerts**: Automatic notifications when HR approves/rejects employee requests
+- **Real-Time Updates**: Notifications poll every 3 seconds for instant updates when requests are processed
+- **Smart Navigation**: Bell notifications redirect to relevant pages (attendance, leave, etc.) when clicked
+- **Notification Management**: Users can mark as read, clear individual notifications, or view detailed status
+- **Professional UI**: Animated notification panel with color-coded status indicators and action buttons
+
 ## Changelog
 
 Changelog:
