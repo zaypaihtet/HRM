@@ -194,6 +194,13 @@ Preferred communication style: Simple, everyday language.
 - **Professional UI**: Created comprehensive calculation dashboards with color-coded metrics, detailed breakdowns, and real-world salary components
 - **SelectItem Bug Fix**: Resolved React Select component error that was preventing calculations page from loading
 
+### Attendance Request Workflow (July 02, 2025)
+- **Automatic Attendance Creation**: When HR approves attendance adjustment requests, the system automatically creates or updates attendance records with standard working hours (7.5 hours, 9:30-17:00)
+- **Leave Request Processing**: Approved leave requests automatically create attendance records with "on_leave" status for all working days in the requested period
+- **Smart Record Management**: System checks for existing attendance records and updates them appropriately, avoiding duplicates
+- **Audit Trail**: All automatically created attendance records include detailed notes linking back to the original request for full traceability
+- **Working Hours Integration**: Uses configured company working hours and excludes non-working days (Mondays) from automatic attendance creation
+
 ## Changelog
 
 Changelog:

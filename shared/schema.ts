@@ -23,9 +23,10 @@ export const attendance = pgTable("attendance", {
   checkIn: timestamp("check_in"),
   checkOut: timestamp("check_out"),
   location: text("location"),
-  status: text("status").notNull().default("present"), // present, absent, late
+  status: text("status").notNull().default("present"), // present, absent, late, on_leave
   hoursWorked: decimal("hours_worked", { precision: 4, scale: 2 }),
   overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).default("0"),
+  notes: text("notes"), // Additional notes for attendance records
 });
 
 export const requests = pgTable("requests", {
@@ -40,6 +41,7 @@ export const requests = pgTable("requests", {
   reviewComment: text("review_comment"),
   createdAt: timestamp("created_at").defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
+  notes: text("notes"), // Additional notes and system messages
 });
 
 export const payroll = pgTable("payroll", {

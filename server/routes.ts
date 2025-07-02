@@ -743,16 +743,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/requests/:id", async (req, res) => {
+  app.put("/api/requests/:id", requireHR, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
+      
+      // Get the original request before updating
+      const originalRequest = await storage.getRequest(id);
+      if (!originalRequest) {
+        return res.status(404).json({ message: "Request not found" });
+      }
+      
+      // Update the request
       const request = await storage.updateRequest(id, updateData);
       if (!request) {
         return res.status(404).json({ message: "Request not found" });
       }
-      res.json(request);
+      
+      // If this is an attendance adjustment request being approved, create/update attendance record
+      if (request.type === 'attendance_adjustment' && 
+          updateData.status === 'approved' && 
+          originalRequest.status !== 'approved') {
+        
+        try {
+          // Get working hours configuration
+          const workingHours = await storage.getWorkingHours();
+          const standardHours = 7.5; // 9:30-17:00 with 1hr break
+          const startTime = workingHours[0]?.startTime || '09:30';
+          const endTime = workingHours[0]?.endTime || '17:00';
+          
+          // Parse the request date
+          const requestDate = request.startDate;
+          
+          // Check if attendance record already exists for this date
+          const existingAttendance = await storage.getAttendanceByDate(requestDate);
+          const userAttendance = existingAttendance.find(att => att.userId === request.userId);
+          
+          if (userAttendance) {
+            // Update existing attendance record to mark as present
+            await storage.updateAttendance(userAttendance.id, {
+              status: 'present',
+              hoursWorked: standardHours.toString(),
+              overtimeHours: '0',
+              notes: `Approved via attendance adjustment request #${request.id}`
+            });
+          } else {
+            // Create new attendance record
+            const checkInDateTime = new Date(`${requestDate}T${startTime}:00`);
+            const checkOutDateTime = new Date(`${requestDate}T${endTime}:00`);
+            
+            await storage.createAttendance({
+              userId: request.userId,
+              date: requestDate,
+              checkIn: checkInDateTime,
+              checkOut: checkOutDateTime,
+              status: 'present',
+              hoursWorked: standardHours.toString(),
+              overtimeHours: '0',
+              location: 'Office (Attendance Adjustment)',
+              notes: `Approved via attendance adjustment request #${request.id}`
+            });
+          }
+          
+          // Log the attendance creation for auditing
+          console.log(`[AUTO] Attendance record created/updated for user ${request.userId} on ${requestDate} via request #${request.id}`);
+          
+        } catch (attendanceError) {
+          console.error('Failed to create attendance record:', attendanceError);
+          // Don't fail the entire request if attendance creation fails
+          // Just log the error and continue
+        }
+      }
+      
+      // If this is a leave request being approved, mark days as absent with approved leave
+      if (request.type === 'leave' && 
+          updateData.status === 'approved' && 
+          originalRequest.status !== 'approved') {
+        
+        try {
+          const startDate = new Date(request.startDate);
+          const endDate = new Date(request.endDate || request.startDate);
+          
+          // Create attendance records for each day in the leave period
+          let currentDate = new Date(startDate);
+          while (currentDate <= endDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const dayOfWeek = currentDate.getDay();
+            
+            // Only process working days (Tue-Sun, skip Monday)
+            if (dayOfWeek !== 1) {
+              const existingAttendance = await storage.getAttendanceByDate(dateStr);
+              const userAttendance = existingAttendance.find(att => att.userId === request.userId);
+              
+              if (userAttendance) {
+                // Update existing record
+                await storage.updateAttendance(userAttendance.id, {
+                  status: 'on_leave',
+                  hoursWorked: '0',
+                  overtimeHours: '0',
+                  notes: `Approved leave: ${request.reason} (Request #${request.id})`
+                });
+              } else {
+                // Create new attendance record for leave
+                await storage.createAttendance({
+                  userId: request.userId,
+                  date: dateStr,
+                  checkIn: null,
+                  checkOut: null,
+                  status: 'on_leave',
+                  hoursWorked: '0',
+                  overtimeHours: '0',
+                  location: 'N/A (On Leave)',
+                  notes: `Approved leave: ${request.reason} (Request #${request.id})`
+                });
+              }
+            }
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          
+        } catch (leaveError) {
+          console.error('Failed to create leave attendance records:', leaveError);
+        }
+      }
+      
+      // Get the final updated request
+      const finalRequest = await storage.getRequest(id);
+      res.json(finalRequest);
+      
     } catch (error) {
+      console.error('Request update error:', error);
       res.status(500).json({ message: "Failed to update request" });
     }
   });
