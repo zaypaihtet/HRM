@@ -72,6 +72,18 @@ export const checkinZones = pgTable("checkin_zones", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const workingHours = pgTable("working_hours", {
+  id: serial("id").primaryKey(),
+  startTime: text("start_time").notNull().default("09:30"), // HH:MM format
+  endTime: text("end_time").notNull().default("17:00"),     // HH:MM format
+  workDays: text("work_days").notNull().default("2,3,4,5,6,0"), // Comma separated day numbers
+  breakDuration: integer("break_duration").notNull().default(60), // minutes
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -101,6 +113,12 @@ export const insertCheckinZoneSchema = createInsertSchema(checkinZones).omit({
   createdAt: true,
 });
 
+export const insertWorkingHoursSchema = createInsertSchema(workingHours).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Attendance = typeof attendance.$inferSelect;
@@ -113,3 +131,5 @@ export type Holiday = typeof holidays.$inferSelect;
 export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
 export type CheckinZone = typeof checkinZones.$inferSelect;
 export type InsertCheckinZone = z.infer<typeof insertCheckinZoneSchema>;
+export type WorkingHours = typeof workingHours.$inferSelect;
+export type InsertWorkingHours = z.infer<typeof insertWorkingHoursSchema>;

@@ -127,7 +127,34 @@ The system uses a relational database with the following main entities:
 
 Preferred communication style: Simple, everyday language.
 
+## Security Improvements (July 02, 2025)
+
+### Critical Security Fixes Implemented
+- **Password Security**: Implemented bcrypt hashing with salt rounds for secure password storage
+- **JWT Authentication**: Added JSON Web Token-based authentication replacing client-side only auth
+- **Authorization Middleware**: Created comprehensive role-based access control for all API endpoints
+- **Rate Limiting**: Added request rate limiting to prevent brute force attacks
+- **Security Headers**: Implemented Helmet.js with CSP, CORS configuration, and security headers
+- **Input Validation**: Added parameter validation and sanitization across all endpoints
+- **Error Handling**: Implemented secure error responses that don't leak internal information
+
+### Real-time Features Added
+- **Live Location Tracking**: Real-time geolocation updates every 30 seconds
+- **Dynamic Clock**: Live updating time display with working hours validation
+- **Working Hours System**: Configurable working schedule (9:30 AM - 5:00 PM, Tue-Sun, Monday off)
+- **Animated Mobile Interface**: Smooth animations and transitions for better UX
+- **Network Status**: Online/offline detection with appropriate UI feedback
+- **Real-time Attendance**: Live attendance status updates and validation
+
+### New Components
+- **Mobile Employee Portal**: Comprehensive real-time mobile interface with animations
+- **Working Hours Management**: HR configuration panel for adjusting work schedules
+- **Authentication System**: Secure JWT-based login with proper session management
+- **Location Services**: Geolocation tracking with permission handling
+
 ## Changelog
 
 Changelog:
 - July 02, 2025. Initial setup
+- July 02, 2025. Security audit and comprehensive security fixes implemented
+- July 02, 2025. Real-time mobile portal with geolocation and working hours system
