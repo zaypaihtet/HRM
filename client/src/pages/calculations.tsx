@@ -65,7 +65,7 @@ export default function Calculations() {
   const attendanceCalculation = useMutation({
     mutationFn: async (data: AttendanceCalculationData) => {
       return await apiRequest("/api/attendance/calculate", "POST", {
-        userId: data.userId ? parseInt(data.userId) : undefined,
+        userId: data.userId && data.userId !== "all" ? parseInt(data.userId) : undefined,
         startDate: data.startDate,
         endDate: data.endDate,
       });
@@ -172,7 +172,7 @@ export default function Calculations() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">All Employees</SelectItem>
+                          <SelectItem value="all">All Employees</SelectItem>
                           {users.map((user: any) => (
                             <SelectItem key={user.id} value={user.id.toString()}>
                               {user.name} ({user.email})
