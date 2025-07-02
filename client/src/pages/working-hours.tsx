@@ -16,6 +16,8 @@ interface WorkingHours {
   id?: number;
   startTime: string;
   endTime: string;
+  earliestCheckIn: string;
+  latestCheckOut: string;
   workDays: number[];
   breakDuration: number;
   isActive: boolean;
@@ -36,6 +38,8 @@ const DAYS_OF_WEEK = [
 export default function WorkingHours() {
   const [startTime, setStartTime] = useState("09:30");
   const [endTime, setEndTime] = useState("17:00");
+  const [earliestCheckIn, setEarliestCheckIn] = useState("08:00");
+  const [latestCheckOut, setLatestCheckOut] = useState("20:00");
   const [breakDuration, setBreakDuration] = useState(60);
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Tue-Sun
   const [isActive, setIsActive] = useState(true);
@@ -115,6 +119,8 @@ export default function WorkingHours() {
     saveWorkingHoursMutation.mutate({
       startTime,
       endTime,
+      earliestCheckIn,
+      latestCheckOut,
       workDays: selectedDays,
       breakDuration,
       isActive,
@@ -190,7 +196,7 @@ export default function WorkingHours() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Time Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startTime">Start Time</Label>
                   <Input
@@ -207,6 +213,24 @@ export default function WorkingHours() {
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="earliestCheckIn">Earliest Check-In</Label>
+                  <Input
+                    id="earliestCheckIn"
+                    type="time"
+                    value={earliestCheckIn}
+                    onChange={(e) => setEarliestCheckIn(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="latestCheckOut">Latest Check-Out</Label>
+                  <Input
+                    id="latestCheckOut"
+                    type="time"
+                    value={latestCheckOut}
+                    onChange={(e) => setLatestCheckOut(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">

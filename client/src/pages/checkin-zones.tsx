@@ -47,8 +47,8 @@ export default function CheckinZones() {
     mutationFn: async (data: CheckinZoneFormData) => {
       const response = await apiRequest("POST", "/api/checkin-zones", {
         ...data,
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
+        latitude: data.latitude, // Keep as string for decimal precision
+        longitude: data.longitude, // Keep as string for decimal precision
         radius: parseInt(data.radius),
       });
       return response.json();
@@ -75,8 +75,8 @@ export default function CheckinZones() {
     mutationFn: async ({ id, data }: { id: number; data: CheckinZoneFormData }) => {
       const response = await apiRequest("PUT", `/api/checkin-zones/${id}`, {
         ...data,
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
+        latitude: data.latitude, // Keep as string for decimal precision
+        longitude: data.longitude, // Keep as string for decimal precision
         radius: parseInt(data.radius),
       });
       return response.json();

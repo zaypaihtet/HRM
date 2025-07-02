@@ -1029,11 +1029,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/checkin-zones", async (req, res) => {
     try {
+      console.log('Creating check-in zone with data:', req.body);
       const zoneData = insertCheckinZoneSchema.parse(req.body);
       const zone = await storage.createCheckinZone(zoneData);
       res.status(201).json(zone);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid check-in zone data" });
+    } catch (error: any) {
+      console.error('Check-in zone creation error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid check-in zone data", 
+          errors: error.errors,
+          details: error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`)
+        });
+      }
+      res.status(500).json({ message: "Failed to create check-in zone" });
     }
   });
 

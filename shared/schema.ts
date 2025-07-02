@@ -78,6 +78,8 @@ export const workingHours = pgTable("working_hours", {
   id: serial("id").primaryKey(),
   startTime: text("start_time").notNull().default("09:30"), // HH:MM format
   endTime: text("end_time").notNull().default("17:00"),     // HH:MM format
+  earliestCheckIn: text("earliest_check_in").notNull().default("08:00"), // Earliest allowed check-in time
+  latestCheckOut: text("latest_check_out").notNull().default("20:00"), // Latest allowed check-out time
   workDays: text("work_days").notNull().default("2,3,4,5,6,0"), // Comma separated day numbers
   breakDuration: integer("break_duration").notNull().default(60), // minutes
   isActive: boolean("is_active").default(true),

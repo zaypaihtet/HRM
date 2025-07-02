@@ -57,23 +57,6 @@ export default function MobileProfile() {
 
   return (
     <div className="max-w-sm mx-auto bg-black min-h-screen relative overflow-hidden">
-      {/* Status Bar */}
-      <div className="flex items-center justify-between px-6 py-2 bg-black text-white text-xs">
-        <div className="flex items-center space-x-1">
-          <span className="font-medium">9:41</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <div className="flex space-x-1">
-            <div className="w-1 h-1 bg-white rounded-full"></div>
-            <div className="w-1 h-2 bg-white rounded-full"></div>
-            <div className="w-1 h-3 bg-white rounded-full"></div>
-            <div className="w-1 h-4 bg-white rounded-full"></div>
-          </div>
-          <div className="w-6 h-3 border border-white rounded-sm">
-            <div className="w-4 h-1.5 bg-white rounded-sm m-0.5"></div>
-          </div>
-        </div>
-      </div>
 
       {/* App Content */}
       <div className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-t-3xl min-h-screen">
