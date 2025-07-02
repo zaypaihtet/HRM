@@ -178,9 +178,9 @@ export default function MobileApp() {
 
   const menuItems = [
     { icon: Activity, title: "My Requests", subtitle: "View all submissions", href: "/mobile-requests" },
-    { icon: Calendar, title: "Schedule", subtitle: "Working hours & holidays", href: "/mobile-schedule" },
-    { icon: MapPin, title: "Location", subtitle: "Check-in zones", href: "/mobile-location" },
-    { icon: Settings, title: "Settings", subtitle: "App preferences", href: "/mobile-settings" },
+    { icon: Calendar, title: "Attendance Report", subtitle: "Track work hours", href: "/attendance" },
+    { icon: MapPin, title: "Live Location", subtitle: "GPS & check-in zones", href: "/mobile-location" },
+    { icon: Coffee, title: "Holidays", subtitle: "Company holidays", href: "/holidays" },
   ];
 
   return (
@@ -316,14 +316,24 @@ export default function MobileApp() {
                   {workingStatus.message}
                 </Badge>
 
-                {/* Location */}
-                <div className="flex items-center justify-center space-x-2 text-xs text-gray-500 mt-3">
-                  {isLoadingLocation ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <MapPin className="w-3 h-3" />
-                  )}
-                  <span className="font-mono truncate max-w-48">{currentLocation}</span>
+                {/* Location Status */}
+                <div className="flex items-center justify-center space-x-2 mt-4">
+                  <Link href="/mobile-location" className="w-full">
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-3 hover:shadow-sm transition-all">
+                      <div className="flex items-center space-x-3">
+                        {isLoadingLocation ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+                        ) : (
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-green-800">GPS Location Active</p>
+                          <p className="text-xs text-green-600 truncate">{currentLocation}</p>
+                        </div>
+                        <Navigation className="w-4 h-4 text-green-600" />
+                      </div>
+                    </div>
+                  </Link>
                 </div>
               </div>
             </motion.div>
