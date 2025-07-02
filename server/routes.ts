@@ -7,89 +7,257 @@ import { hashPassword, verifyPassword, validatePasswordStrength } from "./utils/
 import { z } from "zod";
 
 // Calculation helper functions
-async function calculateAttendanceStats(attendanceRecords: any[]) {
-  let totalDays = 0;
+async function calculateAttendanceStats(attendanceRecords: any[], startDate: string, endDate: string) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Calculate total working days (excluding weekends and holidays)
+  let totalWorkingDays = 0;
+  let currentDate = new Date(start);
+  const holidays = await storage.getAllHolidays();
+  const holidayDates = holidays.map(h => h.date);
+  
+  while (currentDate <= end) {
+    const dayOfWeek = currentDate.getDay();
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    // Monday is off (day 1), working days are Tue-Sun (2-0)
+    if (dayOfWeek !== 1 && !holidayDates.includes(dateStr)) {
+      totalWorkingDays++;
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
   let presentDays = 0;
   let absentDays = 0;
   let lateDays = 0;
+  let earlyDepartures = 0;
   let totalHours = 0;
   let totalOvertimeHours = 0;
+  let totalBreakTime = 0;
   
+  // Get working hours configuration
+  const workingHours = await storage.getWorkingHours();
+  const workStart = workingHours[0]?.startTime || '09:30';
+  const workEnd = workingHours[0]?.endTime || '17:00';
+  const breakDuration = workingHours[0]?.breakDuration || 60; // minutes
+  
+  const attendanceMap = new Map();
   attendanceRecords.forEach(record => {
-    totalDays++;
+    attendanceMap.set(record.date, record);
+  });
+  
+  // Check each working day
+  currentDate = new Date(start);
+  while (currentDate <= end) {
+    const dayOfWeek = currentDate.getDay();
+    const dateStr = currentDate.toISOString().split('T')[0];
     
-    if (record.status === 'present') {
+    // Skip non-working days
+    if (dayOfWeek === 1 || holidayDates.includes(dateStr)) {
+      currentDate.setDate(currentDate.getDate() + 1);
+      continue;
+    }
+    
+    const record = attendanceMap.get(dateStr);
+    
+    if (record && record.status === 'present') {
       presentDays++;
-      totalHours += parseFloat(record.hoursWorked || '0');
-      totalOvertimeHours += parseFloat(record.overtimeHours || '0');
+      const hoursWorked = parseFloat(record.hoursWorked || '0');
+      const overtimeHours = parseFloat(record.overtimeHours || '0');
       
-      // Check if late (assuming work starts at 9:30 AM)
+      totalHours += hoursWorked;
+      totalOvertimeHours += overtimeHours;
+      
+      // Check for late arrival
       if (record.checkIn) {
         const checkInTime = new Date(record.checkIn);
+        const [startHour, startMin] = workStart.split(':').map(Number);
         const workStartTime = new Date(checkInTime);
-        workStartTime.setHours(9, 30, 0, 0);
+        workStartTime.setHours(startHour, startMin, 0, 0);
         
         if (checkInTime > workStartTime) {
           lateDays++;
         }
       }
-    } else if (record.status === 'absent') {
+      
+      // Check for early departure
+      if (record.checkOut) {
+        const checkOutTime = new Date(record.checkOut);
+        const [endHour, endMin] = workEnd.split(':').map(Number);
+        const workEndTime = new Date(checkOutTime);
+        workEndTime.setHours(endHour, endMin, 0, 0);
+        
+        if (checkOutTime < workEndTime) {
+          earlyDepartures++;
+        }
+      }
+      
+      // Calculate break time
+      totalBreakTime += breakDuration;
+      
+    } else {
       absentDays++;
     }
-  });
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
   
-  const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
+  const attendanceRate = totalWorkingDays > 0 ? (presentDays / totalWorkingDays) * 100 : 0;
+  const punctualityRate = presentDays > 0 ? ((presentDays - lateDays) / presentDays) * 100 : 0;
+  const avgHoursPerDay = presentDays > 0 ? totalHours / presentDays : 0;
   
   return {
-    totalDays,
+    period: { startDate, endDate },
+    workingDays: totalWorkingDays,
     presentDays,
     absentDays,
     lateDays,
-    totalHours: totalHours.toFixed(2),
-    totalOvertimeHours: totalOvertimeHours.toFixed(2),
-    attendanceRate: attendanceRate.toFixed(2)
+    earlyDepartures,
+    totalHours: parseFloat(totalHours.toFixed(2)),
+    totalOvertimeHours: parseFloat(totalOvertimeHours.toFixed(2)),
+    avgHoursPerDay: parseFloat(avgHoursPerDay.toFixed(2)),
+    totalBreakTime: Math.round(totalBreakTime / 60), // Convert to hours
+    attendanceRate: parseFloat(attendanceRate.toFixed(2)),
+    punctualityRate: parseFloat(punctualityRate.toFixed(2)),
+    productivity: {
+      onTimeRatio: presentDays > 0 ? ((presentDays - lateDays - earlyDepartures) / presentDays) * 100 : 0,
+      overtimeRatio: totalHours > 0 ? (totalOvertimeHours / totalHours) * 100 : 0
+    }
   };
 }
 
-async function calculatePayroll(attendanceRecords: any[], baseSalary: number, overtimeRate: number = 1.5) {
-  let totalHours = 0;
-  let overtimeHours = 0;
-  let regularHours = 0;
+async function calculatePayroll(attendanceRecords: any[], baseSalary: number, overtimeRate: number = 1.5, month: number, year: number) {
+  // Get working hours configuration
+  const workingHours = await storage.getWorkingHours();
+  const standardDailyHours = 7.5; // 9:30-17:00 with 1hr break = 7.5 hours
+  const workDays = [2, 3, 4, 5, 6, 0]; // Tue-Sun (Monday off)
   
-  // Standard work hours per day (8 hours)
-  const standardWorkHours = 8;
+  // Calculate expected working days for the month
+  let expectedWorkingDays = 0;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const holidays = await storage.getAllHolidays();
+  const holidayDates = holidays
+    .filter(h => {
+      const hDate = new Date(h.date);
+      return hDate.getMonth() + 1 === month && hDate.getFullYear() === year;
+    })
+    .map(h => h.date);
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    const dateStr = date.toISOString().split('T')[0];
+    
+    if (workDays.includes(dayOfWeek) && !holidayDates.includes(dateStr)) {
+      expectedWorkingDays++;
+    }
+  }
+  
+  const expectedMonthlyHours = expectedWorkingDays * standardDailyHours;
+  
+  // Process attendance records
+  let totalHours = 0;
+  let regularHours = 0;
+  let overtimeHours = 0;
+  let presentDays = 0;
+  let lateDays = 0;
+  let absentDays = 0;
+  let bonusHours = 0;
   
   attendanceRecords.forEach(record => {
     if (record.status === 'present') {
+      presentDays++;
       const dailyHours = parseFloat(record.hoursWorked || '0');
       const dailyOvertime = parseFloat(record.overtimeHours || '0');
       
       totalHours += dailyHours;
+      regularHours += Math.min(dailyHours, standardDailyHours);
       overtimeHours += dailyOvertime;
       
-      // Calculate regular hours (up to 8 per day)
-      regularHours += Math.min(dailyHours, standardWorkHours);
+      // Bonus for perfect attendance days (full hours + no late)
+      if (dailyHours >= standardDailyHours && record.checkIn) {
+        const checkInTime = new Date(record.checkIn);
+        const workStart = workingHours[0]?.startTime || '09:30';
+        const [startHour, startMin] = workStart.split(':').map(Number);
+        const workStartTime = new Date(checkInTime);
+        workStartTime.setHours(startHour, startMin, 0, 0);
+        
+        if (checkInTime <= workStartTime) {
+          bonusHours += 0.5; // 30 min bonus for punctuality
+        } else {
+          lateDays++;
+        }
+      }
+    } else {
+      absentDays++;
     }
   });
   
-  // Calculate pay
-  const monthlyBaseSalary = baseSalary;
-  const overtimePay = overtimeHours * (baseSalary / 160) * overtimeRate; // Assuming 160 hours/month standard
-  const grossSalary = monthlyBaseSalary + overtimePay;
+  // Salary calculations
+  const hourlyRate = baseSalary / expectedMonthlyHours;
+  const regularPay = regularHours * hourlyRate;
+  const overtimePay = overtimeHours * hourlyRate * overtimeRate;
+  const bonusPay = bonusHours * hourlyRate * 1.2; // 20% bonus for punctuality
   
-  // Basic deductions (can be expanded)
-  const taxRate = 0.1; // 10% tax
-  const deductions = grossSalary * taxRate;
-  const netSalary = grossSalary - deductions;
+  // Attendance bonus (if attendance rate > 95%)
+  const attendanceRate = (presentDays / expectedWorkingDays) * 100;
+  const attendanceBonus = attendanceRate >= 95 ? baseSalary * 0.05 : 0; // 5% bonus
+  
+  // Late penalty
+  const latePenalty = lateDays * hourlyRate * 0.5; // 30 min penalty per late day
+  
+  // Absent penalty
+  const absentPenalty = absentDays * hourlyRate * standardDailyHours;
+  
+  const grossSalary = regularPay + overtimePay + bonusPay + attendanceBonus - latePenalty - absentPenalty;
+  
+  // Comprehensive deductions
+  const taxRate = grossSalary > 50000 ? 0.15 : 0.10; // Progressive tax
+  const incomeTax = grossSalary * taxRate;
+  const socialSecurity = grossSalary * 0.062; // 6.2%
+  const medicare = grossSalary * 0.0145; // 1.45%
+  const healthInsurance = 150; // Fixed amount
+  const providentFund = grossSalary * 0.12; // 12% EPF
+  
+  const totalDeductions = incomeTax + socialSecurity + medicare + healthInsurance + providentFund;
+  const netSalary = grossSalary - totalDeductions;
   
   return {
-    totalHours: totalHours.toFixed(2),
-    regularHours: regularHours.toFixed(2),
-    overtimeHours: overtimeHours.toFixed(2),
-    baseSalary: monthlyBaseSalary,
-    overtimePay: parseFloat(overtimePay.toFixed(2)),
-    grossSalary: parseFloat(grossSalary.toFixed(2)),
-    deductions: parseFloat(deductions.toFixed(2)),
+    period: { month, year },
+    attendance: {
+      expectedWorkingDays,
+      presentDays,
+      absentDays,
+      lateDays,
+      attendanceRate: parseFloat(attendanceRate.toFixed(2))
+    },
+    hours: {
+      expectedHours: parseFloat(expectedMonthlyHours.toFixed(2)),
+      totalHours: parseFloat(totalHours.toFixed(2)),
+      regularHours: parseFloat(regularHours.toFixed(2)),
+      overtimeHours: parseFloat(overtimeHours.toFixed(2)),
+      bonusHours: parseFloat(bonusHours.toFixed(2))
+    },
+    salary: {
+      baseSalary: parseFloat(baseSalary.toFixed(2)),
+      hourlyRate: parseFloat(hourlyRate.toFixed(2)),
+      regularPay: parseFloat(regularPay.toFixed(2)),
+      overtimePay: parseFloat(overtimePay.toFixed(2)),
+      bonusPay: parseFloat(bonusPay.toFixed(2)),
+      attendanceBonus: parseFloat(attendanceBonus.toFixed(2)),
+      latePenalty: parseFloat(latePenalty.toFixed(2)),
+      absentPenalty: parseFloat(absentPenalty.toFixed(2)),
+      grossSalary: parseFloat(grossSalary.toFixed(2))
+    },
+    deductions: {
+      incomeTax: parseFloat(incomeTax.toFixed(2)),
+      socialSecurity: parseFloat(socialSecurity.toFixed(2)),
+      medicare: parseFloat(medicare.toFixed(2)),
+      healthInsurance: parseFloat(healthInsurance.toFixed(2)),
+      providentFund: parseFloat(providentFund.toFixed(2)),
+      totalDeductions: parseFloat(totalDeductions.toFixed(2))
+    },
     netSalary: parseFloat(netSalary.toFixed(2))
   };
 }
@@ -848,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calculate attendance statistics
-      const calculations = await calculateAttendanceStats(attendanceRecords);
+      const calculations = await calculateAttendanceStats(attendanceRecords, startDate, endDate);
       
       res.json({
         period: { startDate, endDate },
@@ -888,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Calculate payroll
-      const payrollCalculation = await calculatePayroll(monthlyRecords, baseSalary, overtimeRate || 1.5);
+      const payrollCalculation = await calculatePayroll(monthlyRecords, baseSalary, overtimeRate || 1.5, month, year);
       
       // Create payroll record
       const payrollData = {
@@ -896,8 +1064,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         month,
         year,
         baseSalary: baseSalary.toString(),
-        overtimePay: payrollCalculation.overtimePay.toString(),
-        deductions: payrollCalculation.deductions.toString(),
+        overtimePay: payrollCalculation.salary.overtimePay.toString(),
+        deductions: payrollCalculation.deductions.totalDeductions.toString(),
         netPay: payrollCalculation.netSalary.toString(),
         status: "processed"
       };

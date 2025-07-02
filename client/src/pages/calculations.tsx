@@ -230,38 +230,77 @@ export default function Calculations() {
               <div className="mt-6 space-y-4">
                 <Separator />
                 <div>
-                  <h3 className="font-semibold mb-3">Attendance Results</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Total Days:</span>
-                        <Badge variant="secondary">{attendanceResult.calculations.totalDays}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Present Days:</span>
-                        <Badge variant="default">{attendanceResult.calculations.presentDays}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Absent Days:</span>
-                        <Badge variant="destructive">{attendanceResult.calculations.absentDays}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Late Days:</span>
-                        <Badge variant="outline">{attendanceResult.calculations.lateDays}</Badge>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Professional Attendance Analysis
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    {/* Core Metrics */}
+                    <div className="space-y-3 p-3 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-800">Core Attendance</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Working Days:</span>
+                          <Badge variant="secondary">{attendanceResult.calculations.workingDays}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Present:</span>
+                          <Badge variant="default">{attendanceResult.calculations.presentDays}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Absent:</span>
+                          <Badge variant="destructive">{attendanceResult.calculations.absentDays}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Attendance Rate:</span>
+                          <Badge variant="default">{attendanceResult.calculations.attendanceRate}%</Badge>
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Total Hours:</span>
-                        <Badge variant="secondary">{attendanceResult.calculations.totalHours}h</Badge>
+
+                    {/* Performance Metrics */}
+                    <div className="space-y-3 p-3 bg-green-50 rounded-lg">
+                      <h4 className="font-medium text-green-800">Performance</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Late Days:</span>
+                          <Badge variant="outline">{attendanceResult.calculations.lateDays}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Early Departures:</span>
+                          <Badge variant="outline">{attendanceResult.calculations.earlyDepartures}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Punctuality Rate:</span>
+                          <Badge variant="default">{attendanceResult.calculations.punctualityRate}%</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>On-Time Ratio:</span>
+                          <Badge variant="default">{attendanceResult.calculations.productivity?.onTimeRatio?.toFixed(1)}%</Badge>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Overtime Hours:</span>
-                        <Badge variant="outline">{attendanceResult.calculations.totalOvertimeHours}h</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Attendance Rate:</span>
-                        <Badge variant="default">{attendanceResult.calculations.attendanceRate}%</Badge>
+                    </div>
+
+                    {/* Hours Analysis */}
+                    <div className="space-y-3 p-3 bg-purple-50 rounded-lg">
+                      <h4 className="font-medium text-purple-800">Hours Breakdown</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Total Hours:</span>
+                          <Badge variant="secondary">{attendanceResult.calculations.totalHours}h</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Overtime:</span>
+                          <Badge variant="outline">{attendanceResult.calculations.totalOvertimeHours}h</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Avg Daily:</span>
+                          <Badge variant="secondary">{attendanceResult.calculations.avgHoursPerDay}h</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Break Time:</span>
+                          <Badge variant="outline">{attendanceResult.calculations.totalBreakTime}h</Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -396,43 +435,145 @@ export default function Calculations() {
               <div className="mt-6 space-y-4">
                 <Separator />
                 <div>
-                  <h3 className="font-semibold mb-3">Payroll Results</h3>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span>Total Hours:</span>
-                          <Badge variant="secondary">{payrollResult.calculation.totalHours}h</Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Regular Hours:</span>
-                          <Badge variant="outline">{payrollResult.calculation.regularHours}h</Badge>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Overtime Hours:</span>
-                          <Badge variant="outline">{payrollResult.calculation.overtimeHours}h</Badge>
-                        </div>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Professional Payroll Analysis
+                  </h3>
+                  
+                  {/* Attendance Summary */}
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-800 mb-2">Attendance Summary</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold text-blue-600">{payrollResult.attendance?.expectedWorkingDays || 0}</div>
+                        <div className="text-gray-600">Expected Days</div>
                       </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-green-600">{payrollResult.attendance?.presentDays || 0}</div>
+                        <div className="text-gray-600">Present Days</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-red-600">{payrollResult.attendance?.absentDays || 0}</div>
+                        <div className="text-gray-600">Absent Days</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-orange-600">{payrollResult.attendance?.attendanceRate || 0}%</div>
+                        <div className="text-gray-600">Attendance Rate</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    {/* Hours Breakdown */}
+                    <div className="space-y-3 p-3 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-800">Hours Analysis</h4>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span>Base Salary:</span>
-                          <Badge variant="secondary">${payrollResult.calculation.baseSalary}</Badge>
+                          <span>Expected:</span>
+                          <Badge variant="secondary">{payrollResult.hours?.expectedHours || 0}h</Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span>Overtime Pay:</span>
-                          <Badge variant="outline">${payrollResult.calculation.overtimePay}</Badge>
+                          <span>Worked:</span>
+                          <Badge variant="default">{payrollResult.hours?.totalHours || 0}h</Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span>Deductions:</span>
-                          <Badge variant="destructive">${payrollResult.calculation.deductions}</Badge>
+                          <span>Regular:</span>
+                          <Badge variant="outline">{payrollResult.hours?.regularHours || 0}h</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Overtime:</span>
+                          <Badge variant="outline">{payrollResult.hours?.overtimeHours || 0}h</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Bonus:</span>
+                          <Badge variant="outline">{payrollResult.hours?.bonusHours || 0}h</Badge>
                         </div>
                       </div>
                     </div>
-                    <Separator />
-                    <div className="flex justify-between items-center font-semibold">
-                      <span>Net Salary:</span>
-                      <Badge variant="default" className="text-lg px-4 py-1">
-                        ${payrollResult.calculation.netSalary}
+
+                    {/* Salary Components */}
+                    <div className="space-y-3 p-3 bg-green-50 rounded-lg">
+                      <h4 className="font-medium text-green-800">Earnings</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Base Salary:</span>
+                          <Badge variant="secondary">${payrollResult.salary?.baseSalary || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Regular Pay:</span>
+                          <Badge variant="default">${payrollResult.salary?.regularPay || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Overtime Pay:</span>
+                          <Badge variant="outline">${payrollResult.salary?.overtimePay || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Bonus Pay:</span>
+                          <Badge variant="outline">${payrollResult.salary?.bonusPay || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Attendance Bonus:</span>
+                          <Badge variant="outline">${payrollResult.salary?.attendanceBonus || 0}</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Penalties */}
+                    <div className="space-y-3 p-3 bg-orange-50 rounded-lg">
+                      <h4 className="font-medium text-orange-800">Penalties</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Late Penalty:</span>
+                          <Badge variant="destructive">${payrollResult.salary?.latePenalty || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Absent Penalty:</span>
+                          <Badge variant="destructive">${payrollResult.salary?.absentPenalty || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Gross Salary:</span>
+                          <Badge variant="default">${payrollResult.salary?.grossSalary || 0}</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Deductions */}
+                    <div className="space-y-3 p-3 bg-red-50 rounded-lg">
+                      <h4 className="font-medium text-red-800">Deductions</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Income Tax:</span>
+                          <Badge variant="destructive">${payrollResult.deductions?.incomeTax || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Social Security:</span>
+                          <Badge variant="outline">${payrollResult.deductions?.socialSecurity || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Medicare:</span>
+                          <Badge variant="outline">${payrollResult.deductions?.medicare || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Health Insurance:</span>
+                          <Badge variant="outline">${payrollResult.deductions?.healthInsurance || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Provident Fund:</span>
+                          <Badge variant="outline">${payrollResult.deductions?.providentFund || 0}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Final Net Salary */}
+                  <div className="mt-4 p-4 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">Final Net Salary</h4>
+                        <p className="text-sm text-gray-600">After all deductions and bonuses</p>
+                      </div>
+                      <Badge variant="default" className="text-xl px-6 py-2 bg-green-600 hover:bg-green-700">
+                        ${payrollResult.netSalary || 0}
                       </Badge>
                     </div>
                   </div>
