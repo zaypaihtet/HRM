@@ -6,6 +6,94 @@ import { authenticateToken, requireHR, requireEmployee, generateToken } from "./
 import { hashPassword, verifyPassword, validatePasswordStrength } from "./utils/password";
 import { z } from "zod";
 
+// Calculation helper functions
+async function calculateAttendanceStats(attendanceRecords: any[]) {
+  let totalDays = 0;
+  let presentDays = 0;
+  let absentDays = 0;
+  let lateDays = 0;
+  let totalHours = 0;
+  let totalOvertimeHours = 0;
+  
+  attendanceRecords.forEach(record => {
+    totalDays++;
+    
+    if (record.status === 'present') {
+      presentDays++;
+      totalHours += parseFloat(record.hoursWorked || '0');
+      totalOvertimeHours += parseFloat(record.overtimeHours || '0');
+      
+      // Check if late (assuming work starts at 9:30 AM)
+      if (record.checkIn) {
+        const checkInTime = new Date(record.checkIn);
+        const workStartTime = new Date(checkInTime);
+        workStartTime.setHours(9, 30, 0, 0);
+        
+        if (checkInTime > workStartTime) {
+          lateDays++;
+        }
+      }
+    } else if (record.status === 'absent') {
+      absentDays++;
+    }
+  });
+  
+  const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
+  
+  return {
+    totalDays,
+    presentDays,
+    absentDays,
+    lateDays,
+    totalHours: totalHours.toFixed(2),
+    totalOvertimeHours: totalOvertimeHours.toFixed(2),
+    attendanceRate: attendanceRate.toFixed(2)
+  };
+}
+
+async function calculatePayroll(attendanceRecords: any[], baseSalary: number, overtimeRate: number = 1.5) {
+  let totalHours = 0;
+  let overtimeHours = 0;
+  let regularHours = 0;
+  
+  // Standard work hours per day (8 hours)
+  const standardWorkHours = 8;
+  
+  attendanceRecords.forEach(record => {
+    if (record.status === 'present') {
+      const dailyHours = parseFloat(record.hoursWorked || '0');
+      const dailyOvertime = parseFloat(record.overtimeHours || '0');
+      
+      totalHours += dailyHours;
+      overtimeHours += dailyOvertime;
+      
+      // Calculate regular hours (up to 8 per day)
+      regularHours += Math.min(dailyHours, standardWorkHours);
+    }
+  });
+  
+  // Calculate pay
+  const monthlyBaseSalary = baseSalary;
+  const overtimePay = overtimeHours * (baseSalary / 160) * overtimeRate; // Assuming 160 hours/month standard
+  const grossSalary = monthlyBaseSalary + overtimePay;
+  
+  // Basic deductions (can be expanded)
+  const taxRate = 0.1; // 10% tax
+  const deductions = grossSalary * taxRate;
+  const netSalary = grossSalary - deductions;
+  
+  return {
+    totalHours: totalHours.toFixed(2),
+    regularHours: regularHours.toFixed(2),
+    overtimeHours: overtimeHours.toFixed(2),
+    baseSalary: monthlyBaseSalary,
+    overtimePay: parseFloat(overtimePay.toFixed(2)),
+    grossSalary: parseFloat(grossSalary.toFixed(2)),
+    deductions: parseFloat(deductions.toFixed(2)),
+    netSalary: parseFloat(netSalary.toFixed(2))
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Auth routes
@@ -119,7 +207,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users", authenticateToken, requireHR, async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      // Convert numeric fields to strings as expected by schema
+      const requestData = { ...req.body };
+      if (requestData.baseSalary && typeof requestData.baseSalary === 'number') {
+        requestData.baseSalary = requestData.baseSalary.toString();
+      }
+      
+      const userData = insertUserSchema.parse(requestData);
       
       // Validate password strength if password is provided
       if (userData.password) {
@@ -138,8 +232,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(userData);
       // Never return password in response
       res.status(201).json({ ...user, password: undefined });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create user error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid user data", 
+          errors: error.errors,
+          details: error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`)
+        });
+      }
       res.status(400).json({ message: "Invalid user data" });
     }
   });
@@ -147,11 +248,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/users/:id", authenticateToken, requireHR, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updateData = req.body;
+      const updateData = { ...req.body };
       
       // Validate ID parameter
       if (isNaN(id) || id <= 0) {
         return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Convert numeric fields to strings as expected by schema
+      if (updateData.baseSalary && typeof updateData.baseSalary === 'number') {
+        updateData.baseSalary = updateData.baseSalary.toString();
       }
       
       // If password is being updated, hash it
@@ -683,16 +789,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/working-hours", requireHR, async (req, res) => {
     try {
-      const workingHoursData = insertWorkingHoursSchema.parse(req.body);
+      const requestData = { ...req.body };
+      
+      // Convert numeric fields to match schema expectations
+      if (requestData.breakDuration && typeof requestData.breakDuration === 'string') {
+        requestData.breakDuration = parseInt(requestData.breakDuration);
+      }
+      
+      // Ensure workDays is an array of numbers
+      if (requestData.workDays && typeof requestData.workDays === 'string') {
+        requestData.workDays = JSON.parse(requestData.workDays);
+      }
+      
+      const workingHoursData = insertWorkingHoursSchema.parse(requestData);
       workingHoursData.createdBy = req.user!.id;
       const workingHours = await storage.createWorkingHours(workingHoursData);
       res.status(201).json(workingHours);
     } catch (error: any) {
       console.error('Create working hours error:', error);
       if (error.name === 'ZodError') {
-        return res.status(400).json({ message: "Invalid working hours data", errors: error.errors });
+        return res.status(400).json({ 
+          message: "Invalid working hours data", 
+          errors: error.errors,
+          details: error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`)
+        });
       }
       res.status(500).json({ message: "Failed to create working hours" });
+    }
+  });
+
+  // Attendance calculation routes
+  app.post("/api/attendance/calculate", requireHR, async (req, res) => {
+    try {
+      const { userId, startDate, endDate } = req.body;
+      
+      // Input validation
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: "Start date and end date are required" });
+      }
+      
+      // Get attendance records for the period
+      let attendanceRecords;
+      if (userId) {
+        attendanceRecords = await storage.getAttendanceByUser(userId);
+        // Filter by date range
+        attendanceRecords = attendanceRecords.filter(record => 
+          record.date >= startDate && record.date <= endDate
+        );
+      } else {
+        // Get all attendance records for the date range
+        const allRecords = [];
+        const currentDate = new Date(startDate);
+        const endDateObj = new Date(endDate);
+        
+        while (currentDate <= endDateObj) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          const dailyRecords = await storage.getAttendanceByDate(dateStr);
+          allRecords.push(...dailyRecords);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        attendanceRecords = allRecords;
+      }
+      
+      // Calculate attendance statistics
+      const calculations = await calculateAttendanceStats(attendanceRecords);
+      
+      res.json({
+        period: { startDate, endDate },
+        userId: userId || 'all',
+        calculations,
+        attendanceRecords
+      });
+    } catch (error) {
+      console.error('Attendance calculation error:', error);
+      res.status(500).json({ message: "Failed to calculate attendance" });
+    }
+  });
+
+  // Payroll calculation routes
+  app.post("/api/payroll/calculate", requireHR, async (req, res) => {
+    try {
+      const { userId, month, year, baseSalary, overtimeRate } = req.body;
+      
+      // Input validation
+      if (!userId || !month || !year || !baseSalary) {
+        return res.status(400).json({ message: "User ID, month, year, and base salary are required" });
+      }
+      
+      // Get user information
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get attendance records for the month
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+      
+      const attendanceRecords = await storage.getAttendanceByUser(userId);
+      const monthlyRecords = attendanceRecords.filter(record => 
+        record.date >= startDate && record.date <= endDate
+      );
+      
+      // Calculate payroll
+      const payrollCalculation = await calculatePayroll(monthlyRecords, baseSalary, overtimeRate || 1.5);
+      
+      // Create payroll record
+      const payrollData = {
+        userId,
+        month,
+        year,
+        baseSalary: baseSalary.toString(),
+        overtimePay: payrollCalculation.overtimePay.toString(),
+        deductions: payrollCalculation.deductions.toString(),
+        netPay: payrollCalculation.netSalary.toString(),
+        status: "processed"
+      };
+      
+      const payroll = await storage.createPayroll(payrollData);
+      
+      res.json({
+        payroll,
+        calculation: payrollCalculation,
+        attendanceRecords: monthlyRecords,
+        user: { id: user.id, name: user.name, email: user.email }
+      });
+    } catch (error) {
+      console.error('Payroll calculation error:', error);
+      res.status(500).json({ message: "Failed to calculate payroll" });
     }
   });
 

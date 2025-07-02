@@ -5,6 +5,7 @@ import {
   payroll, 
   holidays,
   checkinZones,
+  workingHours,
   type User, 
   type InsertUser,
   type Attendance,
@@ -16,7 +17,9 @@ import {
   type Holiday,
   type InsertHoliday,
   type CheckinZone,
-  type InsertCheckinZone
+  type InsertCheckinZone,
+  type WorkingHours,
+  type InsertWorkingHours
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Users, BarChart3, Clock, DollarSign, FileCheck, Calendar, Smartphone, LogOut, MapPin, FileText, UserPlus, Settings } from "lucide-react";
+import { Users, BarChart3, Clock, DollarSign, FileCheck, Calendar, Smartphone, LogOut, MapPin, FileText, UserPlus, Settings, Calculator } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,7 @@ const navigation = [
   { name: "Employees", href: "/employees", icon: UserPlus },
   { name: "Attendance", href: "/attendance", icon: Clock },
   { name: "Payroll", href: "/payroll", icon: DollarSign },
+  { name: "Calculations", href: "/calculations", icon: Calculator },
   { name: "Requests", href: "/requests", icon: FileCheck },
   { name: "Holidays", href: "/holidays", icon: Calendar },
   { name: "Check-in Zones", href: "/checkin-zones", icon: MapPin },
