@@ -1,375 +1,358 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Clock, Settings, Save, Calendar, Users } from "lucide-react";
-import Header from "@/components/layout/header";
-import { apiRequest } from "@/lib/queryClient";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Clock, Calendar, Save, RotateCcw, CheckCircle2, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
-const workingHoursSchema = z.object({
-  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
-  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
-  workDays: z.array(z.number()).min(1, "At least one work day must be selected"),
-  breakDuration: z.number().min(0).max(480), // Max 8 hours
-});
-
-type WorkingHoursFormData = z.infer<typeof workingHoursSchema>;
+interface WorkingHours {
+  id?: number;
+  startTime: string;
+  endTime: string;
+  workDays: number[];
+  breakDuration: number;
+  isActive: boolean;
+  createdBy?: number;
+  updatedAt?: string;
+}
 
 const DAYS_OF_WEEK = [
-  { id: 0, name: 'Sunday', short: 'Sun' },
-  { id: 1, name: 'Monday', short: 'Mon' },
-  { id: 2, name: 'Tuesday', short: 'Tue' },
-  { id: 3, name: 'Wednesday', short: 'Wed' },
-  { id: 4, name: 'Thursday', short: 'Thu' },
-  { id: 5, name: 'Friday', short: 'Fri' },
-  { id: 6, name: 'Saturday', short: 'Sat' },
+  { id: 0, name: "Sunday", short: "Sun" },
+  { id: 1, name: "Monday", short: "Mon" },
+  { id: 2, name: "Tuesday", short: "Tue" },
+  { id: 3, name: "Wednesday", short: "Wed" },
+  { id: 4, name: "Thursday", short: "Thu" },
+  { id: 5, name: "Friday", short: "Fri" },
+  { id: 6, name: "Saturday", short: "Sat" },
 ];
 
 export default function WorkingHours() {
-  const { user } = useAuth();
+  const [startTime, setStartTime] = useState("09:30");
+  const [endTime, setEndTime] = useState("17:00");
+  const [breakDuration, setBreakDuration] = useState(60);
+  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Tue-Sun
+  const [isActive, setIsActive] = useState(true);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Get current working hours
-  const { data: workingHours, isLoading } = useQuery({
-    queryKey: ['/api/working-hours'],
+  const { data: workingHours = [], isLoading } = useQuery({
+    queryKey: ["/api/working-hours"],
   });
 
-  const currentConfig = workingHours?.[0] || {
-    startTime: "09:30",
-    endTime: "17:00",
-    workDays: "2,3,4,5,6,0",
-    breakDuration: 60
-  };
+  const currentWorkingHours = Array.isArray(workingHours) && workingHours.length > 0 
+    ? workingHours[0] 
+    : null;
 
-  const form = useForm<WorkingHoursFormData>({
-    resolver: zodResolver(workingHoursSchema),
-    defaultValues: {
-      startTime: currentConfig.startTime,
-      endTime: currentConfig.endTime,
-      workDays: currentConfig.workDays.split(',').map(Number),
-      breakDuration: currentConfig.breakDuration || 60,
-    },
+  // Load current settings when data is available
+  useState(() => {
+    if (currentWorkingHours) {
+      setStartTime(currentWorkingHours.startTime || "09:30");
+      setEndTime(currentWorkingHours.endTime || "17:00");
+      setBreakDuration(currentWorkingHours.breakDuration || 60);
+      setSelectedDays(currentWorkingHours.workDays || [1, 2, 3, 4, 5, 6]);
+      setIsActive(currentWorkingHours.isActive !== false);
+    }
   });
 
-  // Update working hours mutation
-  const updateWorkingHoursMutation = useMutation({
-    mutationFn: async (data: WorkingHoursFormData) => {
-      const payload = {
-        ...data,
-        workDays: data.workDays.join(','),
-        createdBy: user?.id,
-      };
-      
-      const response = await apiRequest("POST", "/api/working-hours", payload);
+  // Save working hours mutation
+  const saveWorkingHoursMutation = useMutation({
+    mutationFn: async (data: Omit<WorkingHours, 'id' | 'createdBy' | 'updatedAt'>) => {
+      const response = await apiRequest("POST", "/api/working-hours", data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/working-hours'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/working-hours"] });
       toast({
-        title: "Working hours updated",
-        description: "The new working hours configuration has been saved successfully.",
+        title: "Working Hours Updated",
+        description: "New working hours have been saved successfully.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Update failed",
-        description: error.message || "Failed to update working hours",
+        title: "Error",
+        description: error.message || "Failed to save working hours",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: WorkingHoursFormData) => {
-    updateWorkingHoursMutation.mutate(data);
+  const handleDayToggle = (dayId: number) => {
+    setSelectedDays(prev => 
+      prev.includes(dayId)
+        ? prev.filter(id => id !== dayId)
+        : [...prev, dayId].sort()
+    );
   };
 
-  const calculateWorkHours = () => {
-    const start = form.watch('startTime');
-    const end = form.watch('endTime');
-    const breakMinutes = form.watch('breakDuration');
-    
-    if (start && end) {
-      const [startHour, startMin] = start.split(':').map(Number);
-      const [endHour, endMin] = end.split(':').map(Number);
-      
-      const startTotalMinutes = startHour * 60 + startMin;
-      const endTotalMinutes = endHour * 60 + endMin;
-      
-      const workMinutes = endTotalMinutes - startTotalMinutes - (breakMinutes || 0);
-      const workHours = (workMinutes / 60).toFixed(1);
-      
-      return `${workHours} hours`;
+  const handleSave = () => {
+    if (selectedDays.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one working day.",
+        variant: "destructive",
+      });
+      return;
     }
-    return '0 hours';
+
+    if (!startTime || !endTime) {
+      toast({
+        title: "Error",
+        description: "Please set both start and end times.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveWorkingHoursMutation.mutate({
+      startTime,
+      endTime,
+      workDays: selectedDays,
+      breakDuration,
+      isActive,
+    });
   };
 
-  const selectedDays = form.watch('workDays') || [];
+  const handleReset = () => {
+    setStartTime("09:30");
+    setEndTime("17:00");
+    setBreakDuration(60);
+    setSelectedDays([1, 2, 3, 4, 5, 6]);
+    setIsActive(true);
+  };
+
+  const calculateWorkingHours = () => {
+    if (!startTime || !endTime) return 0;
+    
+    const start = new Date(`2000-01-01T${startTime}:00`);
+    const end = new Date(`2000-01-01T${endTime}:00`);
+    const diffMs = end.getTime() - start.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    return Math.max(0, diffHours - (breakDuration / 60));
+  };
+
+  const formatWorkingDays = () => {
+    if (selectedDays.length === 0) return "None";
+    if (selectedDays.length === 7) return "Every Day";
+    
+    const dayNames = selectedDays
+      .map(id => DAYS_OF_WEEK.find(day => day.id === id)?.short)
+      .filter(Boolean);
+    
+    return dayNames.join(", ");
+  };
 
   return (
-    <>
-      <Header 
-        title="Working Hours Configuration" 
-        subtitle="Manage company working hours and schedules" 
-      />
-      
-      <div className="space-y-6">
-        {/* Current Configuration Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Clock className="w-5 h-5" />
-              <span>Current Configuration</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600">Work Schedule</Label>
-                <div className="text-lg font-semibold">
-                  {currentConfig.startTime} - {currentConfig.endTime}
-                </div>
-                <p className="text-sm text-gray-500">
-                  Daily working hours: {calculateWorkHours()}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600">Work Days</Label>
-                <div className="flex flex-wrap gap-1">
-                  {currentConfig.workDays.split(',').map((dayId: string) => {
-                    const day = DAYS_OF_WEEK.find(d => d.id === parseInt(dayId));
-                    return day ? (
-                      <Badge key={dayId} variant="default" className="text-xs">
-                        {day.short}
-                      </Badge>
-                    ) : null;
-                  })}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-600">Break Duration</Label>
-                <div className="text-lg font-semibold">
-                  {currentConfig.breakDuration} minutes
-                </div>
-                <p className="text-sm text-gray-500">
-                  {(currentConfig.breakDuration / 60).toFixed(1)} hours break
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Working Hours Management</h1>
+            <p className="text-gray-600 mt-1">Configure shift times and working schedule for all employees</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Settings className="w-5 h-5 text-gray-400" />
+            <Badge variant={isActive ? "default" : "secondary"}>
+              {isActive ? "Active" : "Inactive"}
+            </Badge>
+          </div>
+        </div>
+      </motion.div>
 
-        {/* Configuration Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Settings className="w-5 h-5" />
-              <span>Update Working Hours</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {/* Time Configuration */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Time</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="time" 
-                            {...field}
-                            className="w-full"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Time</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="time" 
-                            {...field}
-                            className="w-full"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Working Hours Configuration */}
+        <motion.div
+          className="lg:col-span-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Clock className="w-5 h-5" />
+                <span>Shift Configuration</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Time Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Start Time</Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">End Time</Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="breakDuration">Break Duration (minutes)</Label>
+                  <Input
+                    id="breakDuration"
+                    type="number"
+                    min="0"
+                    max="480"
+                    value={breakDuration}
+                    onChange={(e) => setBreakDuration(Number(e.target.value))}
+                  />
+                </div>
+              </div>
 
-                {/* Break Duration */}
-                <FormField
-                  control={form.control}
-                  name="breakDuration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Break Duration (minutes)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="0" 
-                          max="480"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                          className="w-full md:w-48"
-                        />
-                      </FormControl>
-                      <p className="text-sm text-gray-500">
-                        Lunch break and other breaks (0-480 minutes)
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              <Separator />
+
+              {/* Working Days */}
+              <div className="space-y-4">
+                <Label className="text-base font-medium">Working Days</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {DAYS_OF_WEEK.map((day) => (
+                    <Button
+                      key={day.id}
+                      variant={selectedDays.includes(day.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleDayToggle(day.id)}
+                      className="flex flex-col h-16"
+                    >
+                      <span className="text-xs font-medium">{day.short}</span>
+                      <span className="text-xs opacity-80">{day.name.slice(0, 3)}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Active Status */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label className="text-base font-medium">Schedule Status</Label>
+                  <p className="text-sm text-gray-600">
+                    Enable or disable this working hours schedule
+                  </p>
+                </div>
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={setIsActive}
                 />
+              </div>
 
-                {/* Work Days Selection */}
-                <FormField
-                  control={form.control}
-                  name="workDays"
-                  render={() => (
-                    <FormItem>
-                      <FormLabel>Work Days</FormLabel>
-                      <div className="grid grid-cols-7 gap-2">
-                        {DAYS_OF_WEEK.map((day) => (
-                          <FormField
-                            key={day.id}
-                            control={form.control}
-                            name="workDays"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={day.id}
-                                  className="flex flex-col items-center space-y-2"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(day.id)}
-                                      onCheckedChange={(checked) => {
-                                        const updatedDays = checked
-                                          ? [...(field.value || []), day.id]
-                                          : (field.value || []).filter((value) => value !== day.id);
-                                        field.onChange(updatedDays);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <Label className="text-xs text-center">
-                                    {day.short}
-                                  </Label>
-                                </FormItem>
-                              );
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Select the days employees are expected to work
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-4">
+                <Button 
+                  onClick={handleSave}
+                  disabled={saveWorkingHoursMutation.isPending}
+                  className="flex-1"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveWorkingHoursMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button variant="outline" onClick={handleReset}>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-                {/* Summary */}
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">Configuration Summary</h4>
-                  <div className="space-y-1 text-sm text-blue-800">
-                    <p>
-                      <strong>Schedule:</strong> {form.watch('startTime')} - {form.watch('endTime')}
-                    </p>
-                    <p>
-                      <strong>Daily Hours:</strong> {calculateWorkHours()}
-                    </p>
-                    <p>
-                      <strong>Work Days:</strong> {selectedDays.length} days per week
-                    </p>
-                    <p>
-                      <strong>Weekly Hours:</strong> {(parseFloat(calculateWorkHours()) * selectedDays.length).toFixed(1)} hours
-                    </p>
+        {/* Preview & Summary */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="w-5 h-5" />
+                <span>Schedule Preview</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Working Hours Summary */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-900">
+                    {calculateWorkingHours().toFixed(1)} hrs
+                  </div>
+                  <div className="text-sm text-blue-700">Daily Working Hours</div>
+                </div>
+              </div>
+
+              {/* Schedule Details */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Start Time:</span>
+                  <span className="font-medium">{startTime || "--:--"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">End Time:</span>
+                  <span className="font-medium">{endTime || "--:--"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Break:</span>
+                  <span className="font-medium">{breakDuration} min</span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-gray-600">Working Days:</span>
+                  <span className="font-medium text-right text-sm">{formatWorkingDays()}</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Weekly Summary */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-900">
+                    {(calculateWorkingHours() * selectedDays.length).toFixed(1)} hrs
+                  </div>
+                  <div className="text-sm text-green-700">Total Weekly Hours</div>
+                </div>
+              </div>
+
+              {/* Current Status */}
+              {currentWorkingHours && (
+                <div className="bg-gray-50 rounded-lg p-3 border">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium">Current Schedule</span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Last updated: {currentWorkingHours.updatedAt 
+                      ? new Date(currentWorkingHours.updatedAt).toLocaleDateString()
+                      : "Unknown"
+                    }
                   </div>
                 </div>
-
-                {/* Submit Button */}
-                <div className="flex items-center space-x-4">
-                  <Button 
-                    type="submit"
-                    disabled={updateWorkingHoursMutation.isPending}
-                    className="flex items-center space-x-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>
-                      {updateWorkingHoursMutation.isPending ? 'Saving...' : 'Save Configuration'}
-                    </span>
-                  </Button>
-                  
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    onClick={() => form.reset()}
-                  >
-                    Reset
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-
-        {/* Impact Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="w-5 h-5" />
-              <span>Implementation Notes</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm text-gray-600">
-              <div className="flex items-start space-x-2">
-                <Calendar className="w-4 h-4 mt-1 text-blue-500" />
-                <p>
-                  <strong>Real-time Effect:</strong> Changes take effect immediately for all employees using the mobile app
-                </p>
-              </div>
-              <div className="flex items-start space-x-2">
-                <Clock className="w-4 h-4 mt-1 text-green-500" />
-                <p>
-                  <strong>Check-in Rules:</strong> Employees can only check in during configured working hours and work days
-                </p>
-              </div>
-              <div className="flex items-start space-x-2">
-                <Users className="w-4 h-4 mt-1 text-purple-500" />
-                <p>
-                  <strong>Employee Notification:</strong> Employees will see the updated schedule on their mobile interface
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    </>
+    </div>
   );
 }

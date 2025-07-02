@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertAttendanceSchema, insertRequestSchema, insertPayrollSchema, insertHolidaySchema, insertCheckinZoneSchema } from "@shared/schema";
+import { insertUserSchema, insertAttendanceSchema, insertRequestSchema, insertPayrollSchema, insertHolidaySchema, insertCheckinZoneSchema, insertWorkingHoursSchema } from "@shared/schema";
 import { authenticateToken, requireHR, requireEmployee, generateToken } from "./middleware/auth";
 import { hashPassword, verifyPassword, validatePasswordStrength } from "./utils/password";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -666,6 +667,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Check-in zone deleted" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete check-in zone" });
+    }
+  });
+
+  // Working hours management routes
+  app.get("/api/working-hours", async (req, res) => {
+    try {
+      const workingHours = await storage.getWorkingHours();
+      res.json(workingHours);
+    } catch (error) {
+      console.error('Get working hours error:', error);
+      res.status(500).json({ message: "Failed to fetch working hours" });
+    }
+  });
+
+  app.post("/api/working-hours", requireHR, async (req, res) => {
+    try {
+      const workingHoursData = insertWorkingHoursSchema.parse(req.body);
+      workingHoursData.createdBy = req.user!.id;
+      const workingHours = await storage.createWorkingHours(workingHoursData);
+      res.status(201).json(workingHours);
+    } catch (error: any) {
+      console.error('Create working hours error:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid working hours data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create working hours" });
     }
   });
 

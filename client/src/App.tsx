@@ -12,6 +12,7 @@ import Holidays from "@/pages/holidays";
 import CheckinZones from "@/pages/checkin-zones";
 import EmployeeReports from "@/pages/employee-reports";
 import Employees from "@/pages/employees";
+import WorkingHours from "@/pages/working-hours";
 import Mobile from "@/pages/mobile";
 import MobileReal from "@/pages/mobile-real";
 import MobileRequests from "@/pages/mobile-requests";
@@ -156,6 +157,7 @@ function AppLayout() {
             <Route path="/requests" component={Requests} />
             <Route path="/holidays" component={Holidays} />
             <Route path="/checkin-zones" component={CheckinZones} />
+            <Route path="/working-hours" component={WorkingHours} />
             <Route path="/employee-reports" component={EmployeeReports} />
             <Route path="/mobile" component={Mobile} />
             <Route component={Dashboard} />
