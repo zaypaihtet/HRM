@@ -1,0 +1,107 @@
+# HRFlow Docker Compose Configuration
+# For local development and production deployment
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hrflow-postgres
+    environment:
+      POSTGRES_DB: hrflow
+      POSTGRES_USER: hrflow_user
+      POSTGRES_PASSWORD: hrflow_secure_password_2025
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - hrflow_postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - hrflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hrflow_user -d hrflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # HRFlow Application (Production)
+  hrflow-app:
+    build: .
+    container_name: hrflow-app
+    environment:
+      DATABASE_URL: postgresql://hrflow_user:hrflow_secure_password_2025@postgres:5432/hrflow
+      JWT_SECRET: your_production_jwt_secret_min_32_characters_here
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - hrflow-network
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis (Optional - for session storage and caching)
+  redis:
+    image: redis:7-alpine
+    container_name: hrflow-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - hrflow-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - hrflow_redis_data:/data
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: hrflow-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - hrflow-app
+    networks:
+      - hrflow-network
+    restart: unless-stopped
+
+volumes:
+  hrflow_postgres_data:
+    driver: local
+  hrflow_redis_data:
+    driver: local
+
+networks:
+  hrflow-network:
+    driver: bridge
+
+# Development override
+# Create docker-compose.override.yml for development settings:
+# 
+# version: '3.8'
+# services:
+#   hrflow-app:
+#     build:
+#       target: development
+#     environment:
+#       NODE_ENV: development
+#     volumes:
+#       - .:/app
+#       - /app/node_modules
+#     command: npm run dev
