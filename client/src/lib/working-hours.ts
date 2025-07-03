@@ -2,7 +2,7 @@ export interface WorkingHours {
   id?: number;
   startTime: string; // HH:MM format
   endTime: string;   // HH:MM format
-  workDays: number[]; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  workDays: number[] | string; // 0=Sunday, 1=Monday, ..., 6=Saturday (array or PostgreSQL string format)
   breakDuration: number; // minutes
   isActive: boolean;
   createdBy?: number;
@@ -21,9 +21,26 @@ export const DAYS_OF_WEEK = [
   'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 ];
 
+// Helper function to normalize workDays from PostgreSQL array string to JavaScript array
+const normalizeWorkDays = (workDays: number[] | string): number[] => {
+  if (Array.isArray(workDays)) {
+    return workDays;
+  } else if (typeof workDays === 'string') {
+    // Parse PostgreSQL array string format like "{1,2,3,4,5,6}"
+    return workDays
+      .replace(/[{}]/g, '') // Remove braces
+      .split(',')
+      .map(day => parseInt(day.trim()));
+  } else {
+    // Fallback to default working days
+    return [1, 2, 3, 4, 5, 6];
+  }
+};
+
 export const isWorkingDay = (date: Date, workingHours: WorkingHours = DEFAULT_WORKING_HOURS): boolean => {
   const dayOfWeek = date.getDay();
-  return workingHours.workDays.includes(dayOfWeek);
+  const workDaysArray = normalizeWorkDays(workingHours.workDays);
+  return workDaysArray.includes(dayOfWeek);
 };
 
 export const isWorkingHours = (date: Date, workingHours: WorkingHours = DEFAULT_WORKING_HOURS): boolean => {
@@ -77,6 +94,7 @@ export const getWorkingStatus = (date: Date = new Date(), workingHours: WorkingH
 };
 
 export const formatWorkingHours = (workingHours: WorkingHours): string => {
-  const workDaysNames = workingHours.workDays.map(day => DAYS_OF_WEEK[day]);
+  const workDaysArray = normalizeWorkDays(workingHours.workDays);
+  const workDaysNames = workDaysArray.map(day => DAYS_OF_WEEK[day]);
   return `${workingHours.startTime} - ${workingHours.endTime}, ${workDaysNames.join(', ')}`;
 };
