@@ -36,6 +36,23 @@ echo -e "${BLUE}HRFlow Quick Start Setup${NC}"
 echo "This script will fix common setup issues and get your app running."
 echo
 
+# Check Node.js version compatibility
+NODE_VERSION=$(node --version)
+NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1 | sed 's/v//')
+
+if [ "$NODE_MAJOR" -lt 18 ]; then
+    print_error "Node.js $NODE_VERSION is too old. Please upgrade to Node.js 18+ or preferably 20+"
+    echo "Visit: https://nodejs.org/en/download/"
+    exit 1
+elif [ "$NODE_MAJOR" -eq 18 ] || [ "$NODE_MAJOR" -eq 19 ]; then
+    print_warning "Node.js $NODE_VERSION detected. This may cause vite config issues."
+    echo "We'll set up a compatibility script for you."
+    USE_COMPAT_MODE=true
+else
+    print_success "Node.js $NODE_VERSION is compatible"
+    USE_COMPAT_MODE=false
+fi
+
 # Step 1: Install dependencies
 print_step "1" "Installing dependencies"
 npm install
@@ -233,8 +250,22 @@ fi
 echo
 echo -e "${GREEN}🎉 Setup Complete!${NC}"
 echo
-echo "To start the application:"
-echo "  npm run dev"
+
+# Provide appropriate start command based on Node.js version
+if [ "$USE_COMPAT_MODE" = true ]; then
+    print_warning "Due to your Node.js version, use the compatibility script:"
+    echo "  ./dev-node18.sh"
+    echo
+    echo "Alternative:"
+    echo "  NODE_ENV=development npx tsx server/index.ts"
+    echo
+    echo "For full features, consider upgrading to Node.js 20+:"
+    echo "  See NODEJS_COMPATIBILITY.md for upgrade instructions"
+else
+    echo "To start the application:"
+    echo "  npm run dev"
+fi
+
 echo
 echo "Then open your browser to:"
 echo "  Web interface: http://localhost:5000"
@@ -244,9 +275,11 @@ echo "Default login credentials:"
 echo "  HR Admin: hr.admin / Admin123!"
 echo "  Employee: john.smith / Employee123!"
 echo
-echo "If you encounter issues, run: ./troubleshoot.sh"
-echo "For detailed setup guide, see: LOCAL_SETUP_GUIDE.md"
+echo "If you encounter issues:"
+echo "  ./troubleshoot.sh - Diagnose problems"
+echo "  NODEJS_COMPATIBILITY.md - Node.js version issues"
+echo "  LOCAL_SETUP_GUIDE.md - Detailed setup guide"
 echo
 
-# Make troubleshoot script executable
-chmod +x troubleshoot.sh
+# Make troubleshoot and compatibility scripts executable
+chmod +x troubleshoot.sh dev-node18.sh

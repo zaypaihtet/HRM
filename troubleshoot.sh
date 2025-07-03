@@ -38,12 +38,15 @@ check_nodejs() {
         NODE_VERSION=$(node --version)
         print_status "Node.js installed: $NODE_VERSION"
         
-        # Check if version is 18 or higher
+        # Check if version is 20 or higher (required for vite.config.ts)
         NODE_MAJOR=$(echo $NODE_VERSION | cut -d'.' -f1 | sed 's/v//')
-        if [ "$NODE_MAJOR" -ge 18 ]; then
+        if [ "$NODE_MAJOR" -ge 20 ]; then
             print_status "Node.js version is compatible"
+        elif [ "$NODE_MAJOR" -eq 18 ] || [ "$NODE_MAJOR" -eq 19 ]; then
+            print_warning "Node.js $NODE_VERSION detected. This may cause vite.config.ts issues."
+            print_info "Recommend upgrading to Node.js 20+ or use workaround: NODE_ENV=development npx tsx server/index.ts"
         else
-            print_error "Node.js version $NODE_VERSION is too old. Please upgrade to v18 or higher"
+            print_error "Node.js version $NODE_VERSION is too old. Please upgrade to v20 or higher"
             print_info "Visit: https://nodejs.org/en/download/"
         fi
     else

@@ -4,10 +4,12 @@ This guide will help you set up HRFlow on your local machine step by step.
 
 ## Prerequisites
 
-- Node.js 18.x or higher
+- Node.js 20.x or higher (Required for vite.config.ts compatibility)
 - PostgreSQL 12+ (or access to a cloud database)
 - Git
 - npm or yarn package manager
+
+**Important:** Node.js 18.x has compatibility issues with the current vite.config.ts. Please upgrade to Node.js 20+ or use the workaround below.
 
 ## Step 1: Project Setup
 
@@ -250,6 +252,27 @@ psql -h localhost -U hrflow_user -d hrflow_dev
 ```bash
 rm -rf node_modules package-lock.json
 npm install
+```
+
+### Issue: "The 'paths[0]' argument must be of type string. Received undefined"
+**Solution:** This is a Node.js version compatibility issue. You have two options:
+
+**Option 1: Upgrade Node.js (Recommended)**
+```bash
+# Using nvm (Node Version Manager)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+source ~/.bashrc
+nvm install 20
+nvm use 20
+
+# Or download from nodejs.org
+# Visit: https://nodejs.org/en/download/
+```
+
+**Option 2: Use tsx directly (Workaround)**
+```bash
+# Instead of npm run dev, use:
+NODE_ENV=development npx tsx server/index.ts
 ```
 
 ## Development Tips
