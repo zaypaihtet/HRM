@@ -1,0 +1,233 @@
+HRFlow Quick Start Setup
+This script will fix common setup issues and get your app running.
+
+! Node.js v18.19.0 detected. This may cause vite config issues.
+We'll set up a compatibility script for you.
+
+Step 1: Installing dependencies
+
+up to date, audited 526 packages in 8s
+
+67 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (1 low, 8 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+✓ Dependencies installed
+
+Step 2: Ensuring dotenv is installed
+✓ dotenv already installed
+
+Step 3: Setting up environment configuration
+✓ .env file already exists
+
+Step 4: Database setup options
+Choose your database setup:
+1. Use Docker PostgreSQL (recommended for quick start)
+2. Use existing PostgreSQL installation
+3. Use cloud database (Neon, Supabase, etc.)
+4. Skip database setup (I'll configure it manually)
+
+Enter your choice (1-4): 1
+
+Step 4a: Setting up Docker PostgreSQL
+quick-start.sh: line 148: docker-compose: command not found
+✗ Failed to start PostgreSQL with Docker
+┌─[✗]─[x-coder@parrot]─[~/Desktop/WorkTrackPro/WorkTrackPro]
+└──╼ $./quick-start.sh
+bash: ./quick-start.sh: Permission denied
+┌─[✗]─[x-coder@parrot]─[~/Desktop/WorkTrackPro/WorkTrackPro]
+└──╼ $bash quick-start.sh
+HRFlow Quick Start Setup
+This script will fix common setup issues and get your app running.
+
+! Node.js v18.19.0 detected. This may cause vite config issues.
+We'll set up a compatibility script for you.
+
+Step 1: Installing dependencies
+
+up to date, audited 526 packages in 7s
+
+67 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (1 low, 8 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+✓ Dependencies installed
+
+Step 2: Ensuring dotenv is installed
+✓ dotenv already installed
+
+Step 3: Setting up environment configuration
+✓ .env file already exists
+
+Step 4: Database setup options
+Choose your database setup:
+1. Use Docker PostgreSQL (recommended for quick start)
+2. Use existing PostgreSQL installation
+3. Use cloud database (Neon, Supabase, etc.)
+4. Skip database setup (I'll configure it manually)
+
+Enter your choice (1-4): 2
+
+Step 4b: Using existing PostgreSQL
+! Make sure PostgreSQL is running and you have created the database.
+If you haven't created the database yet, run these commands:
+  sudo -u postgres psql
+  CREATE DATABASE hrflow_dev;
+  CREATE USER hrflow_user WITH PASSWORD 'dev_password_123';
+  GRANT ALL PRIVILEGES ON DATABASE hrflow_dev TO hrflow_user;
+  \q
+
+Step 5: Setting up database schema
+Testing database connection...
+✗ Database connection failed
+! Please check your DATABASE_URL in .env file
+
+Step 6: Final setup
+✓ Created logs directory
+
+🎉 Setup Complete!
+
+! Due to your Node.js version, use the compatibility script:
+  ./dev-node18.sh
+
+Alternative:
+  NODE_ENV=development npx tsx server/index.ts
+
+For full features, consider upgrading to Node.js 20+:
+  See NODEJS_COMPATIBILITY.md for upgrade instructions
+
+Then open your browser to:
+  Web interface: http://localhost:5000
+  Mobile interface: http://localhost:5000/mobile-app
+
+Default login credentials:
+  HR Admin: hr.admin / Admin123!
+  Employee: john.smith / Employee123!
+
+If you encounter issues:
+  ./troubleshoot.sh - Diagnose problems
+  NODEJS_COMPATIBILITY.md - Node.js version issues
+  LOCAL_SETUP_GUIDE.md - Detailed setup guide
+
+┌─[x-coder@parrot]─[~/Desktop/WorkTrackPro/WorkTrackPro]
+└──╼ $bash dev-node18.sh 
+HRFlow Development Server (Node.js 18 Compatible)
+
+Node.js 18 detected. Using compatibility mode.
+🔧 Starting development server...
+📍 Server will be available at: http://localhost:5000
+📱 Mobile interface: http://localhost:5000/mobile-app
+
+node:internal/errors:496
+    ErrorCaptureStackTrace(err);
+    ^
+
+TypeError [ERR_INVALID_ARG_TYPE]: The "paths[0]" argument must be of type string. Received undefined
+    at __node_internal_captureLargerStackTrace (node:internal/errors:496:5)
+    at new NodeError (node:internal/errors:405:5)
+    at validateString (node:internal/validators:162:11)
+    at Object.resolve (node:path:1097:7)
+    at <anonymous> (/home/x-coder/Desktop/WorkTrackPro/WorkTrackPro/vite.config.ts:21:17)
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:336:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+
+Node.js v18.19.0
+┌─[✗]─[x-coder@parrot]─[~/Desktop/WorkTrackPro/WorkTrackPro]
+└──╼ $bash troubleshoot.sh 
+HRFlow Troubleshooting Tool
+Diagnosing common setup issues...
+
+=== Checking Node.js ===
+[✓] Node.js installed: v18.19.0
+[!] Node.js v18.19.0 detected. This may cause vite.config.ts issues.
+[i] Recommend upgrading to Node.js 20+ or use workaround: NODE_ENV=development npx tsx server/index.ts
+
+=== Checking Dependencies ===
+[✓] npm installed: 9.2.0
+[✓] package.json found
+[✓] node_modules directory exists
+[✓] dotenv package installed
+[✓] tsx package installed
+
+=== Checking Environment Configuration ===
+[✓] .env file exists
+[✓] DATABASE_URL is set
+[✓] JWT_SECRET is set
+
+=== Checking Database Connection ===
+[i] Testing database connection...
+[✗] Database connection failed
+[i] Check your DATABASE_URL and ensure the database is running
+
+=== Checking Port Availability ===
+[✓] Port 5000 is available
+
+=== Checking Project Structure ===
+[✓] server/index.ts exists
+[✓] server/db.ts exists
+[✓] client/src/App.tsx exists
+[✓] shared/schema.ts exists
+[✓] drizzle.config.ts exists
+[✓] vite.config.ts exists
+[✓] tsconfig.json exists
+
+=== Quick Solutions ===
+1. Install missing dependencies:
+   npm install
+
+2. Set up environment:
+   cp .env.example .env
+   # Edit .env with your database URL
+
+3. Setup database:
+   npm run db:push
+
+4. Generate secrets:
+   node -e "console.log('JWT_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+
+5. Start development server:
+   npm run dev
+
+6. For detailed setup guide:
+   cat LOCAL_SETUP_GUIDE.md
+
+Troubleshooting completed!
+Check the issues above and follow the suggested solutions.
+┌─[x-coder@parrot]─[~/Desktop/WorkTrackPro/WorkTrackPro]
+└──╼ $npm run dev
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+/home/x-coder/Desktop/WorkTrackPro/WorkTrackPro/server/db.ts:9
+  throw new Error(
+        ^
+
+
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+    at <anonymous> (/home/x-coder/Desktop/WorkTrackPro/WorkTrackPro/server/db.ts:9:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:336:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12)
+
