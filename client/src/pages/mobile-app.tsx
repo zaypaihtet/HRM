@@ -42,6 +42,12 @@ export default function MobileApp() {
     queryKey: ["/api/working-hours"],
   });
 
+  // Get the current working hours (use first one if available, fallback to DEFAULT)
+  const currentWorkingHours = workingHours.length > 0 ? workingHours[0] : DEFAULT_WORKING_HOURS;
+  
+  // Calculate working status using real data
+  const workingStatus = getWorkingStatus(currentTime, currentWorkingHours);
+
   // Real-time clock update
   useEffect(() => {
     const timer = setInterval(() => {
@@ -119,8 +125,6 @@ export default function MobileApp() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  const workingStatus = getWorkingStatus(currentTime);
 
   // Get today's attendance
   const { data: todayAttendance, isLoading: attendanceLoading } = useQuery({
@@ -345,7 +349,7 @@ export default function MobileApp() {
                 
                 <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 mb-4">
                   <Clock className="w-4 h-4" />
-                  <span>{formatWorkingHours(DEFAULT_WORKING_HOURS)}</span>
+                  <span>{formatWorkingHours(currentWorkingHours)}</span>
                 </div>
                 
                 <Badge 
