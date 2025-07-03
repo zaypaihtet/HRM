@@ -1,0 +1,57 @@
+npm run db:push
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/home/x-coder/Desktop/WorkTrackPro/drizzle.config.ts'
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+[✓] Changes applied
+┌─[x-coder@parrot]─[~/Desktop/WorkTrackPro]
+└──╼ $npm run dev
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+/home/x-coder/Desktop/WorkTrackPro/server/db.ts:9
+  throw new Error(
+        ^
+
+
+Error: DATABASE_URL must be set. Did you forget to provision a database?
+    at <anonymous> (/home/x-coder/Desktop/WorkTrackPro/server/db.ts:9:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:336:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12)
+
+Node.js v18.19.0
+┌─[✗]─[x-coder@parrot]─[~/Desktop/WorkTrackPro]
+└──╼ $npm run dev
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+
+node:internal/process/esm_loader:40
+      internalBinding('errors').triggerUncaughtException(
+                                ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'dotenv' imported from /home/x-coder/Desktop/WorkTrackPro/server/index.ts
+    at new NodeError (node:internal/errors:405:5)
+    at packageResolve (node:internal/modules/esm/resolve:916:9)
+    at moduleResolve (node:internal/modules/esm/resolve:973:20)
+    at defaultResolve (node:internal/modules/esm/resolve:1193:11)
+    at nextResolve (node:internal/modules/esm/hooks:864:28)
+    at resolveBase (file:///home/x-coder/Desktop/WorkTrackPro/node_modules/tsx/dist/esm/index.mjs?1751523106066:2:3212)
+    at resolveDirectory (file:///home/x-coder/Desktop/WorkTrackPro/node_modules/tsx/dist/esm/index.mjs?1751523106066:2:3584)
+    at resolveTsPaths (file:///home/x-coder/Desktop/WorkTrackPro/node_modules/tsx/dist/esm/index.mjs?1751523106066:2:4073)
+    at async resolve (file:///home/x-coder/Desktop/WorkTrackPro/node_modules/tsx/dist/esm/index.mjs?1751523106066:2:4441)
+    at async nextResolve (node:internal/modules/esm/hooks:864:22) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+Node.js v18.19.0
+┌─[✗]─[x-coder@parrot]─[~/Desktop/WorkTrackPro]
+└──╼ $
+
