@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,16 +17,77 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertUserSchema, type User as UserType } from "@shared/schema";
 import Header from "@/components/layout/header";
+import { Clock, Calendar } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const employeeFormSchema = insertUserSchema.extend({
   confirmPassword: z.string().min(1, "Please confirm password"),
   baseSalary: z.string().min(1, "Base salary is required"),
+  // Working hours fields
+  shiftName: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  earliestCheckIn: z.string().optional(),
+  latestCheckOut: z.string().optional(),
+  workDays: z.array(z.number()).optional(),
+  breakDuration: z.string().optional(),
+  assignShift: z.boolean().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
 type EmployeeFormData = z.infer<typeof employeeFormSchema>;
+
+// Predefined shift templates
+const SHIFT_TEMPLATES = [
+  {
+    name: "Standard Day",
+    startTime: "09:30",
+    endTime: "17:00",
+    earliestCheckIn: "08:00",
+    latestCheckOut: "20:00",
+    workDays: [2, 3, 4, 5, 6, 0], // Tue-Sun
+    breakDuration: 60
+  },
+  {
+    name: "Morning Shift",
+    startTime: "06:00",
+    endTime: "14:00",
+    earliestCheckIn: "05:00",
+    latestCheckOut: "16:00",
+    workDays: [1, 2, 3, 4, 5, 6, 0], // Mon-Sun
+    breakDuration: 45
+  },
+  {
+    name: "Evening Shift",
+    startTime: "14:00",
+    endTime: "22:00",
+    earliestCheckIn: "13:00",
+    latestCheckOut: "23:00",
+    workDays: [1, 2, 3, 4, 5, 6, 0], // Mon-Sun
+    breakDuration: 45
+  },
+  {
+    name: "Night Shift",
+    startTime: "22:00",
+    endTime: "06:00",
+    earliestCheckIn: "21:00",
+    latestCheckOut: "08:00",
+    workDays: [1, 2, 3, 4, 5, 6, 0], // Mon-Sun
+    breakDuration: 60
+  }
+];
+
+const DAYS_OF_WEEK = [
+  { id: 0, name: "Sunday", short: "Sun" },
+  { id: 1, name: "Monday", short: "Mon" },
+  { id: 2, name: "Tuesday", short: "Tue" },
+  { id: 3, name: "Wednesday", short: "Wed" },
+  { id: 4, name: "Thursday", short: "Thu" },
+  { id: 5, name: "Friday", short: "Fri" },
+  { id: 6, name: "Saturday", short: "Sat" },
+];
 
 export default function Employees() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -48,18 +110,51 @@ export default function Employees() {
       department: "",
       position: "",
       baseSalary: "",
+      // Working hours defaults
+      assignShift: false,
+      shiftName: "Standard Day",
+      startTime: "09:30",
+      endTime: "17:00",
+      earliestCheckIn: "08:00",
+      latestCheckOut: "20:00",
+      workDays: [2, 3, 4, 5, 6, 0], // Tue-Sun
+      breakDuration: "60",
       isActive: true,
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: EmployeeFormData) => {
-      const { confirmPassword, baseSalary, ...employeeData } = data;
+      const { confirmPassword, baseSalary, assignShift, shiftName, startTime, endTime, earliestCheckIn, latestCheckOut, workDays, breakDuration, ...employeeData } = data;
+      
+      // Create employee first
       const response = await apiRequest("POST", "/api/users", {
         ...employeeData,
         baseSalary: parseFloat(baseSalary),
       });
-      return response.json();
+      const newEmployee = await response.json();
+      
+      // Create working hours if shift is assigned
+      if (assignShift && newEmployee.id) {
+        try {
+          await apiRequest("POST", "/api/working-hours", {
+            userId: newEmployee.id,
+            shiftName: shiftName || "Standard Day",
+            startTime: startTime || "09:30",
+            endTime: endTime || "17:00",
+            earliestCheckIn: earliestCheckIn || "08:00",
+            latestCheckOut: latestCheckOut || "20:00",
+            workDays: workDays || [2, 3, 4, 5, 6, 0],
+            breakDuration: parseInt(breakDuration || "60"),
+            isActive: true
+          });
+        } catch (error) {
+          console.error("Failed to create working hours:", error);
+          // Don't fail the entire operation if working hours creation fails
+        }
+      }
+      
+      return newEmployee;
     },
     onSuccess: () => {
       toast({
@@ -151,8 +246,40 @@ export default function Employees() {
       position: employee.position ?? "",
       baseSalary: employee.baseSalary?.toString() || "",
       isActive: employee.isActive ?? true,
+      // Reset shift assignment values when editing
+      assignShift: false,
+      shiftName: "Standard Day",
+      startTime: "09:30",
+      endTime: "17:00",
+      earliestCheckIn: "08:00",
+      latestCheckOut: "20:00",
+      workDays: [2, 3, 4, 5, 6, 0],
+      breakDuration: "60",
     });
     setIsDialogOpen(true);
+  };
+
+  // Handle shift template selection
+  const handleShiftTemplateSelect = (templateName: string) => {
+    const template = SHIFT_TEMPLATES.find(t => t.name === templateName);
+    if (template) {
+      form.setValue("shiftName", template.name);
+      form.setValue("startTime", template.startTime);
+      form.setValue("endTime", template.endTime);
+      form.setValue("earliestCheckIn", template.earliestCheckIn);
+      form.setValue("latestCheckOut", template.latestCheckOut);
+      form.setValue("workDays", template.workDays);
+      form.setValue("breakDuration", template.breakDuration.toString());
+    }
+  };
+
+  // Handle working day toggle
+  const handleWorkDayToggle = (dayId: number) => {
+    const currentDays = form.getValues("workDays") || [];
+    const newDays = currentDays.includes(dayId)
+      ? currentDays.filter(id => id !== dayId)
+      : [...currentDays, dayId].sort();
+    form.setValue("workDays", newDays);
   };
 
   const handleDeactivate = (id: number) => {
@@ -185,7 +312,7 @@ export default function Employees() {
                 Add Employee
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingEmployee ? "Edit Employee" : "Create Employee"}
@@ -338,6 +465,171 @@ export default function Employees() {
                           </FormItem>
                         )}
                       />
+                    </div>
+                  )}
+
+                  {/* Shift Assignment Section */}
+                  {!editingEmployee && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-slate-50">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="w-4 h-4 text-blue-600" />
+                        <h3 className="text-sm font-medium text-gray-900">Assign Work Shift (Optional)</h3>
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="assignShift"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Assign working hours to this employee
+                              </FormLabel>
+                              <p className="text-xs text-muted-foreground">
+                                Set custom working schedule and shift times
+                              </p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {form.watch("assignShift") && (
+                        <div className="space-y-4 pl-6">
+                          {/* Shift Template Selection */}
+                          <div>
+                            <Label className="text-sm font-medium">Quick Templates</Label>
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              {SHIFT_TEMPLATES.map((template) => (
+                                <Button
+                                  key={template.name}
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleShiftTemplateSelect(template.name)}
+                                  className="text-xs"
+                                >
+                                  {template.name}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Shift Name */}
+                          <FormField
+                            control={form.control}
+                            name="shiftName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Shift Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Standard Day" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Time Settings */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="startTime"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Start Time</FormLabel>
+                                  <FormControl>
+                                    <Input type="time" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="endTime"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>End Time</FormLabel>
+                                  <FormControl>
+                                    <Input type="time" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="earliestCheckIn"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Earliest Check-in</FormLabel>
+                                  <FormControl>
+                                    <Input type="time" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="latestCheckOut"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Latest Check-out</FormLabel>
+                                  <FormControl>
+                                    <Input type="time" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="breakDuration"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Break Duration (minutes)</FormLabel>
+                                <FormControl>
+                                  <Input type="number" placeholder="60" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Working Days */}
+                          <div>
+                            <Label className="text-sm font-medium">Working Days</Label>
+                            <div className="grid grid-cols-4 gap-2 mt-2">
+                              {DAYS_OF_WEEK.map((day) => (
+                                <div key={day.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`day-${day.id}`}
+                                    checked={(form.watch("workDays") || []).includes(day.id)}
+                                    onCheckedChange={() => handleWorkDayToggle(day.id)}
+                                  />
+                                  <Label htmlFor={`day-${day.id}`} className="text-xs">
+                                    {day.short}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   
