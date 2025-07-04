@@ -14,6 +14,7 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertCheckinZoneSchema, type CheckinZone } from "@shared/schema";
 import Header from "@/components/layout/header";
+import LeafletMap from "@/components/location/leaflet-map";
 
 const checkinZoneFormSchema = insertCheckinZoneSchema.extend({
   latitude: z.string().min(1, "Latitude is required"),
@@ -26,6 +27,7 @@ type CheckinZoneFormData = z.infer<typeof checkinZoneFormSchema>;
 export default function CheckinZones() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<CheckinZone | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const { toast } = useToast();
 
   const { data: zones = [], isLoading } = useQuery<CheckinZone[]>({
@@ -169,6 +171,15 @@ export default function CheckinZones() {
     }
   };
 
+  const handleMapClick = (lat: number, lng: number) => {
+    form.setValue("latitude", lat.toString());
+    form.setValue("longitude", lng.toString());
+    toast({
+      title: "Location selected",
+      description: "Zone location has been set from map",
+    });
+  };
+
   return (
     <>
       <Header title="Check-in Zones" subtitle="Manage office locations for employee check-ins" />
@@ -190,91 +201,113 @@ export default function CheckinZones() {
                 Add Zone
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingZone ? "Edit Check-in Zone" : "Create Check-in Zone"}
                 </DialogTitle>
                 <DialogDescription>
-                  Define a geographic zone where employees can check in and out.
+                  Define a geographic zone where employees can check in and out. Click on the map to set location.
                 </DialogDescription>
               </DialogHeader>
               
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Zone Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Main Office" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="latitude"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Latitude</FormLabel>
-                          <FormControl>
-                            <Input placeholder="37.7749" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="longitude"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Longitude</FormLabel>
-                          <FormControl>
-                            <Input placeholder="-122.4194" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Map Section */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Select Location</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Click on the map to set the check-in zone location
+                    </p>
                   </div>
+                  
+                  <LeafletMap 
+                    className="w-full"
+                    height="h-96"
+                    onMapClick={handleMapClick}
+                    showCreateZone={true}
+                  />
+                </div>
 
-                  <Button type="button" variant="outline" onClick={getCurrentLocation} className="w-full">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Use Current Location
-                  </Button>
+                {/* Form Section */}
+                <div className="space-y-4">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Zone Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Main Office" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                   
-                  <FormField
-                    control={form.control}
-                    name="radius"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Radius (meters)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="100" type="number" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                      {editingZone ? "Update" : "Create"} Zone
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="latitude"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Latitude</FormLabel>
+                              <FormControl>
+                                <Input placeholder="37.7749" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="longitude"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Longitude</FormLabel>
+                              <FormControl>
+                                <Input placeholder="-122.4194" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <Button type="button" variant="outline" onClick={getCurrentLocation} className="w-full">
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Use Current Location
+                      </Button>
+                      
+                      <FormField
+                        control={form.control}
+                        name="radius"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Radius (meters)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="100" type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex justify-end space-x-2">
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                          {editingZone ? "Update" : "Create"} Zone
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         </div>

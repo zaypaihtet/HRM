@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Navigation, Target } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import SimpleMap from "@/components/location/simple-map";
+import LeafletMap from "@/components/location/leaflet-map";
 
 export default function MobileLocation() {
   return (
@@ -48,14 +48,14 @@ export default function MobileLocation() {
           </div>
         </motion.div>
 
-        {/* Simple Map Section */}
+        {/* Real OpenStreetMap Section */}
         <motion.div 
           className="p-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <SimpleMap className="w-full" />
+          <LeafletMap className="w-full" height="h-80" />
         </motion.div>
 
         {/* Instructions */}
