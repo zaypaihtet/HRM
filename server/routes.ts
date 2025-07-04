@@ -1,6 +1,6 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import http from "http";
+type Server = http.Server;import { storage } from "./storage";
 import { insertUserSchema, insertAttendanceSchema, insertRequestSchema, insertPayrollSchema, insertHolidaySchema, insertCheckinZoneSchema, insertWorkingHoursSchema } from "@shared/schema";
 import { authenticateToken, requireHR, requireEmployee, generateToken } from "./middleware/auth";
 import { hashPassword, verifyPassword, validatePasswordStrength } from "./utils/password";
