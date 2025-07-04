@@ -76,6 +76,8 @@ export const checkinZones = pgTable("checkin_zones", {
 
 export const workingHours = pgTable("working_hours", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id), // NULL for default/global schedule, specific user ID for individual schedules
+  shiftName: text("shift_name").default("Standard Shift"), // Name/identifier for the shift
   startTime: text("start_time").notNull().default("09:30"), // HH:MM format
   endTime: text("end_time").notNull().default("17:00"),     // HH:MM format
   earliestCheckIn: text("earliest_check_in").notNull().default("08:00"), // Earliest allowed check-in time

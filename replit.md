@@ -51,11 +51,11 @@ The system uses a relational database with the following main entities:
 - Status tracking (pending, approved, rejected)
 - Date range support for multi-day requests
 
-### Payroll System
-- Monthly payroll processing
-- Base salary and overtime calculations
-- Deduction management
-- PDF payslip generation
+### Attendance Reporting System
+- Date range filtering for attendance reports
+- Employee-specific and comprehensive reporting
+- CSV export functionality
+- Real working hours calculations
 
 ### Mobile Support
 - Responsive design for mobile devices
@@ -238,6 +238,15 @@ Preferred communication style: Simple, everyday language.
 - **Dynamic Working Status**: Real-time working status calculations based on actual company schedule (9:30 AM - 5:00 PM, Tuesday-Sunday)
 - **TypeScript Compatibility**: Updated interfaces to handle both array and string formats for workDays data
 - **Live Data Display**: Mobile app displays authentic company working hours and status messages
+
+### HR Reporting & Employee Shift Management (July 04, 2025)
+- **Comprehensive Attendance Reports**: HR can generate detailed attendance reports with date range filtering (daily, monthly, custom periods)
+- **Employee-Specific Shifts**: Individual working hour configurations for each employee with different shift patterns (morning, evening, night shifts)
+- **Real Hours Calculation**: Accurate working hours calculation based on check-in/check-out times minus break duration
+- **CSV Export**: Download attendance reports as CSV files for external analysis and payroll processing
+- **Shift Templates**: Pre-configured shift templates (Standard Day, Morning, Evening, Night) for quick employee assignment
+- **Global vs Individual**: Support for both company-wide default shifts and employee-specific custom schedules
+- **Removed Payroll Calculations**: Streamlined system by removing complex payroll calculation features to focus on core attendance tracking
 
 ### Comprehensive Deployment Setup (July 03, 2025)
 - **Multi-Environment Support**: Complete deployment guides for local development, cPanel hosting, and cloud platforms

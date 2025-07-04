@@ -517,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Attendance routes
   app.get("/api/attendance", authenticateToken, async (req, res) => {
     try {
-      const { date, userId } = req.query;
+      const { date, userId, startDate, endDate } = req.query;
       const currentUserId = req.user?.id;
       const currentUserRole = req.user?.role;
       let attendance;
@@ -527,7 +527,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      if (date) {
+      if (startDate && endDate) {
+        // Date range filtering
+        const allRecords = [];
+        const currentDate = new Date(startDate as string);
+        const endDateObj = new Date(endDate as string);
+        
+        while (currentDate <= endDateObj) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          const dailyRecords = await storage.getAttendanceByDate(dateStr);
+          allRecords.push(...dailyRecords);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        attendance = allRecords;
+        
+        // Filter by user if specified
+        if (userId) {
+          attendance = attendance.filter(att => att.userId === parseInt(userId as string));
+        }
+        
+        // Filter for non-HR users to only see their own records
+        if (currentUserRole !== 'hr') {
+          attendance = attendance.filter(att => att.userId === currentUserId);
+        }
+      } else if (date) {
         attendance = await storage.getAttendanceByDate(date as string);
         // Filter for non-HR users to only see their own records
         if (currentUserRole !== 'hr') {
@@ -1088,8 +1112,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Transform the data before validation
       const transformedData = {
+        userId: req.body.userId || null,
+        shiftName: req.body.shiftName || 'Standard Shift',
         startTime: req.body.startTime,
         endTime: req.body.endTime,
+        earliestCheckIn: req.body.earliestCheckIn || '08:00',
+        latestCheckOut: req.body.latestCheckOut || '20:00',
         workDays: Array.isArray(req.body.workDays) ? req.body.workDays.join(',') : req.body.workDays,
         breakDuration: typeof req.body.breakDuration === 'string' ? parseInt(req.body.breakDuration) : req.body.breakDuration,
         isActive: req.body.isActive !== undefined ? req.body.isActive : true,
@@ -1108,6 +1136,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ message: "Failed to create working hours" });
+    }
+  });
+
+  app.put("/api/working-hours/:id", authenticateToken, requireHR, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const transformedData = {
+        userId: req.body.userId || null,
+        shiftName: req.body.shiftName,
+        startTime: req.body.startTime,
+        endTime: req.body.endTime,
+        earliestCheckIn: req.body.earliestCheckIn,
+        latestCheckOut: req.body.latestCheckOut,
+        workDays: Array.isArray(req.body.workDays) ? req.body.workDays.join(',') : req.body.workDays,
+        breakDuration: typeof req.body.breakDuration === 'string' ? parseInt(req.body.breakDuration) : req.body.breakDuration,
+        isActive: req.body.isActive !== undefined ? req.body.isActive : true,
+      };
+      
+      const workingHours = await storage.updateWorkingHours(id, transformedData);
+      if (!workingHours) {
+        return res.status(404).json({ message: "Working hours not found" });
+      }
+      res.json(workingHours);
+    } catch (error: any) {
+      console.error('Update working hours error:', error);
+      res.status(500).json({ message: "Failed to update working hours" });
+    }
+  });
+
+  app.delete("/api/working-hours/:id", authenticateToken, requireHR, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorkingHours(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Working hours not found" });
+      }
+      res.json({ message: "Working hours deleted" });
+    } catch (error: any) {
+      console.error('Delete working hours error:', error);
+      res.status(500).json({ message: "Failed to delete working hours" });
     }
   });
 

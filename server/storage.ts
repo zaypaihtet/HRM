@@ -78,7 +78,10 @@ export interface IStorage {
 
   // Working Hours
   getWorkingHours(): Promise<WorkingHours[]>;
+  getWorkingHoursByUser(userId: number): Promise<WorkingHours | undefined>;
   createWorkingHours(workingHours: InsertWorkingHours): Promise<WorkingHours>;
+  updateWorkingHours(id: number, workingHours: Partial<InsertWorkingHours>): Promise<WorkingHours | undefined>;
+  deleteWorkingHours(id: number): Promise<boolean>;
 
   // System Settings
   getSystemSettings(): Promise<SystemSettings | undefined>;
@@ -392,13 +395,35 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getWorkingHoursByUser(userId: number): Promise<WorkingHours | undefined> {
+    const result = await db.select().from(workingHours)
+      .where(and(eq(workingHours.userId, userId), eq(workingHours.isActive, true)))
+      .limit(1);
+    return result[0] || undefined;
+  }
+
   async createWorkingHours(insertWorkingHours: InsertWorkingHours): Promise<WorkingHours> {
-    // Deactivate existing working hours
-    await db.update(workingHours).set({ isActive: false });
+    // If this is a global shift (no userId), deactivate all other global shifts
+    if (!insertWorkingHours.userId) {
+      await db.update(workingHours).set({ isActive: false }).where(eq(workingHours.userId, null));
+    }
     
     // Insert new working hours
     const [newWorkingHours] = await db.insert(workingHours).values(insertWorkingHours).returning();
     return newWorkingHours;
+  }
+
+  async updateWorkingHours(id: number, updateWorkingHours: Partial<InsertWorkingHours>): Promise<WorkingHours | undefined> {
+    const [updated] = await db.update(workingHours)
+      .set({ ...updateWorkingHours, updatedAt: new Date() })
+      .where(eq(workingHours.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteWorkingHours(id: number): Promise<boolean> {
+    const result = await db.delete(workingHours).where(eq(workingHours.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   async getSystemSettings(): Promise<SystemSettings | undefined> {
