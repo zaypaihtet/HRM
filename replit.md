@@ -248,6 +248,15 @@ Preferred communication style: Simple, everyday language.
 - **Global vs Individual**: Support for both company-wide default shifts and employee-specific custom schedules
 - **Removed Payroll Calculations**: Streamlined system by removing complex payroll calculation features to focus on core attendance tracking
 
+### OpenStreetMap Integration & Enhanced Filters (July 04, 2025)
+- **OpenStreetMap Migration**: Replaced Google Maps with OpenStreetMap using Leaflet for better performance and no API key requirements
+- **Enhanced Attendance Reports**: Added real-time search functionality for filtering by employee name, department, location, and notes
+- **Status Filtering**: Filter attendance records by status (Present, Absent, Late, On Leave) with clear filter controls
+- **Current Data Defaults**: Attendance reports now default to showing today's data instead of monthly view for immediate relevance
+- **Individual Employee Shifts**: Complete employee shift management system with customizable working hours per employee
+- **Shift Templates**: Pre-configured templates for different shift types (Standard, Morning, Evening, Night shifts)
+- **Real-Time Location Tracking**: OpenStreetMap with 15-second GPS updates, check-in zone visualization, and location accuracy indicators
+
 ### Comprehensive Deployment Setup (July 03, 2025)
 - **Multi-Environment Support**: Complete deployment guides for local development, cPanel hosting, and cloud platforms
 - **Docker Configuration**: Production-ready Docker Compose setup with PostgreSQL, Redis, and Nginx

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Navigation, Target } from "lucide-react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import GoogleMaps from "@/components/location/google-maps";
+import OpenStreetMap from "@/components/location/openstreetmap";
 
 export default function MobileLocation() {
   return (
@@ -48,14 +48,14 @@ export default function MobileLocation() {
           </div>
         </motion.div>
 
-        {/* Google Maps Section */}
+        {/* OpenStreetMap Section */}
         <motion.div 
           className="p-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <GoogleMaps className="w-full" />
+          <OpenStreetMap className="w-full" />
         </motion.div>
 
         {/* Instructions */}

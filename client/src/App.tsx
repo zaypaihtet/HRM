@@ -27,6 +27,7 @@ import MobileHolidays from "@/pages/mobile-holidays";
 import MobileProfile from "@/pages/mobile-profile";
 import MobileCheckin from "@/pages/mobile-checkin";
 import EmployeePortal from "@/pages/employee-portal";
+import EmployeeShifts from "@/pages/employee-shifts";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -164,6 +165,7 @@ function AppLayout() {
             <Route path="/holidays" component={Holidays} />
             <Route path="/checkin-zones" component={CheckinZones} />
             <Route path="/working-hours" component={WorkingHours} />
+            <Route path="/employee-shifts" component={EmployeeShifts} />
             <Route path="/employee-reports" component={EmployeeReports} />
             <Route path="/settings" component={SystemSettings} />
             <Route path="/mobile" component={Mobile} />

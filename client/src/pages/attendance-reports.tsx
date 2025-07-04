@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, Download, FileText, Clock, Users, TrendingUp, Edit, Save, X } from 'lucide-react';
+import { Calendar, Download, FileText, Clock, Users, TrendingUp, Edit, Save, X, Search } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import Header from '@/components/layout/header';
 import { apiRequest } from '@/lib/queryClient';
@@ -59,12 +59,14 @@ const editAttendanceSchema = z.object({
 type EditAttendanceFormData = z.infer<typeof editAttendanceSchema>;
 
 export default function AttendanceReports() {
-  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd')); // Default to today
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd')); // Default to today
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
-  const [reportType, setReportType] = useState<'daily' | 'monthly' | 'custom'>('monthly');
+  const [reportType, setReportType] = useState<'daily' | 'monthly' | 'custom'>('daily'); // Default to daily
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -75,8 +77,24 @@ export default function AttendanceReports() {
   });
 
   // Fetch attendance records with date range
-  const { data: attendanceRecords = [], isLoading } = useQuery<AttendanceRecord[]>({
+  const { data: rawAttendanceRecords = [], isLoading } = useQuery<AttendanceRecord[]>({
     queryKey: ['/api/attendance', startDate, endDate, selectedEmployee],
+  });
+
+  // Filter attendance records based on search and status
+  const attendanceRecords = rawAttendanceRecords.filter(record => {
+    // Search filter
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      record.user?.name?.toLowerCase().includes(searchLower) ||
+      record.user?.department?.toLowerCase().includes(searchLower) ||
+      record.location?.toLowerCase().includes(searchLower) ||
+      record.notes?.toLowerCase().includes(searchLower);
+
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || record.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
   });
 
   // Edit form
@@ -340,6 +358,56 @@ export default function AttendanceReports() {
               </div>
             </div>
 
+            {/* Search and Filter Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              {/* Search Input */}
+              <div>
+                <Label htmlFor="search">Search Records</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="Search by name, department, location..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <Label htmlFor="statusFilter">Filter by Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="present">Present</SelectItem>
+                    <SelectItem value="absent">Absent</SelectItem>
+                    <SelectItem value="late">Late</SelectItem>
+                    <SelectItem value="on_leave">On Leave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Clear Filters */}
+              <div className="flex items-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                  className="w-full"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
+
             <div className="flex space-x-2 mt-4">
               <Button variant="outline" onClick={generateCurrentMonth}>
                 Current Month
@@ -363,7 +431,9 @@ export default function AttendanceReports() {
                 <FileText className="w-8 h-8 text-blue-600" />
                 <div>
                   <p className="text-2xl font-bold">{totalRecords}</p>
-                  <p className="text-sm text-gray-600">Total Records</p>
+                  <p className="text-sm text-gray-600">
+                    {searchQuery || statusFilter !== 'all' ? 'Filtered' : 'Total'} Records
+                  </p>
                 </div>
               </div>
             </CardContent>
