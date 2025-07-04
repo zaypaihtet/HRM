@@ -24,6 +24,7 @@ import MobileAttendance from "@/pages/mobile-attendance";
 import MobileLeave from "@/pages/mobile-leave";
 import MobileHolidays from "@/pages/mobile-holidays";
 import MobileProfile from "@/pages/mobile-profile";
+import MobileCheckin from "@/pages/mobile-checkin";
 import EmployeePortal from "@/pages/employee-portal";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -139,6 +140,7 @@ function AppLayout() {
         <Route path="/mobile-leave" component={MobileLeave} />
         <Route path="/mobile-holidays" component={MobileHolidays} />
         <Route path="/mobile-profile" component={MobileProfile} />
+        <Route path="/mobile-checkin" component={MobileCheckin} />
         <Route path="/mobile-app" component={MobileApp} />
         <Route path="/mobile" component={Mobile} />
         <Route component={EmployeePortal} />

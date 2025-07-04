@@ -221,13 +221,13 @@ export default function MobileApp() {
       action: () => setIsRequestModalOpen(true),
     },
     {
-      icon: Target,
-      title: "Track",
-      subtitle: "View location",
+      icon: MapPin,
+      title: "Map Check-in",
+      subtitle: "Location-based",
       color: "#10B981",
       bgColor: "bg-green-500",
       lightBg: "bg-green-50",
-      href: "/mobile-location",
+      href: "/mobile-checkin",
       action: () => {},
     },
   ];
