@@ -1,0 +1,69 @@
+att report to real data attendance can't edit pls do editable
+
+The above error occurred in the <AttendanceReports> component:
+
+    at AttendanceReports (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/pages/attendance-reports.tsx?t=1751607899465:32:37)
+    at Route (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbe42ddf:323:16)
+    at Switch (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbe42ddf:379:17)
+    at main
+    at div
+    at div
+    at AppLayout (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/App.tsx?t=1751607899465&v=2U4Kq0kJF7obi_OyiDiGA:248:20)
+    at AppContent (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/App.tsx?t=1751607899465&v=2U4Kq0kJF7obi_OyiDiGA:436:20)
+    at AuthProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/lib/auth.tsx:20:32)
+    at Provider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=cbe42ddf:38:15)
+    at TooltipProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=cbe42ddf:62:5)
+    at QueryClientProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=cbe42ddf:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+record.hoursWorked.toFixed is not a function
+[vite] hot updated: /src/pages/attendance-reports.tsx
+[vite] hot updated: /src/index.css?v=ISmiC8ftZE3sFcQBlFeYk
+Cannot read properties of null (reading 'length')
+Cannot read properties of null (reading 'length')
+The above error occurred in the <AttendanceReports> component:
+
+    at AttendanceReports (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/pages/attendance-reports.tsx?t=1751607949149:32:37)
+    at Route (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbe42ddf:323:16)
+    at Switch (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbe42ddf:379:17)
+    at main
+    at div
+    at div
+    at AppLayout (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/App.tsx?t=1751607899465&v=2U4Kq0kJF7obi_OyiDiGA:248:20)
+    at AppContent (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/App.tsx?t=1751607899465&v=2U4Kq0kJF7obi_OyiDiGA:436:20)
+    at AuthProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/lib/auth.tsx:20:32)
+    at Provider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=cbe42ddf:38:15)
+    at TooltipProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=cbe42ddf:62:5)
+    at QueryClientProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=cbe42ddf:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at AttendanceReports (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/pages/attendance-reports.tsx?t=1751607949149:32:37)
+at Route (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbe42ddf:323:16)
+at Switch (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=cbe42ddf:379:17)
+at main
+at div
+at div
+at AppLayout (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/App.tsx?t=1751607899465&amp;v=2U4Kq0kJF7obi_OyiDiGA:248:20)
+at AppContent (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/App.tsx?t=1751607899465&amp;v=2U4Kq0kJF7obi_OyiDiGA:436:20)
+at AuthProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/src/lib/auth.tsx:20:32)
+at Provider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=cbe42ddf:38:15)
+at TooltipProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=cbe42ddf:62:5)
+at QueryClientProvider (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=cbe42ddf:2805:3)
+at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://7488b653-f134-4a56-b095-261ee98192eb-00-177ef9xkxfh2n.sisko.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Cannot read properties of null (reading 'length')
+[vite] hot updated: /src/pages/attendance-reports.tsx
+[vite] hot updated: /src/index.css?v=ISmiC8ftZE3sFcQBlFeYk
+[vite] hot updated: /src/pages/attendance-reports.tsx
+[vite] hot updated: /src/index.css?v=ISmiC8ftZE3sFcQBlFeYk

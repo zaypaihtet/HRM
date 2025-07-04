@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Download, FileText, Clock, Users, TrendingUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Calendar, Download, FileText, Clock, Users, TrendingUp, Edit } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import Header from '@/components/layout/header';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { z } from 'zod';
 
 interface AttendanceRecord {
   id: number;
@@ -52,26 +60,6 @@ export default function AttendanceReports() {
   // Fetch attendance records with date range
   const { data: attendanceRecords = [], isLoading } = useQuery<AttendanceRecord[]>({
     queryKey: ['/api/attendance', startDate, endDate, selectedEmployee],
-    queryFn: async () => {
-      const url = new URL('/api/attendance', window.location.origin);
-      url.searchParams.set('startDate', startDate);
-      url.searchParams.set('endDate', endDate);
-      if (selectedEmployee !== 'all') {
-        url.searchParams.set('userId', selectedEmployee);
-      }
-      
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch attendance records');
-      }
-      
-      return response.json();
-    },
   });
 
   const handleReportTypeChange = (type: 'daily' | 'monthly' | 'custom') => {
@@ -110,7 +98,7 @@ export default function AttendanceReports() {
   const presentDays = attendanceRecords.filter(r => r.status === 'present').length;
   const absentDays = attendanceRecords.filter(r => r.status === 'absent').length;
   const lateDays = attendanceRecords.filter(r => r.status === 'late').length;
-  const totalHours = attendanceRecords.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
+  const totalHours = attendanceRecords.reduce((sum, r) => sum + (parseFloat(r.hoursWorked?.toString() || '0') || 0), 0);
   const avgHoursPerDay = totalRecords > 0 ? (totalHours / presentDays || 0) : 0;
 
   // Group by employee for summary
@@ -119,7 +107,7 @@ export default function AttendanceReports() {
     const empPresent = empRecords.filter(r => r.status === 'present').length;
     const empAbsent = empRecords.filter(r => r.status === 'absent').length;
     const empLate = empRecords.filter(r => r.status === 'late').length;
-    const empHours = empRecords.reduce((sum, r) => sum + (r.hoursWorked || 0), 0);
+    const empHours = empRecords.reduce((sum, r) => sum + (parseFloat(r.hoursWorked?.toString() || '0') || 0), 0);
     
     return {
       employee: emp,
@@ -143,7 +131,7 @@ export default function AttendanceReports() {
         record.checkInTime ? format(new Date(record.checkInTime), 'HH:mm') : '',
         record.checkOutTime ? format(new Date(record.checkOutTime), 'HH:mm') : '',
         record.status,
-        record.hoursWorked?.toFixed(2) || '0',
+        parseFloat(record.hoursWorked?.toString() || '0').toFixed(2),
         record.location,
         record.notes || ''
       ])
@@ -404,10 +392,10 @@ export default function AttendanceReports() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {record.hoursWorked ? `${record.hoursWorked.toFixed(1)}h` : '-'}
+                        {record.hoursWorked ? `${parseFloat(record.hoursWorked.toString()).toFixed(1)}h` : '-'}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {record.location.length > 30 ? `${record.location.substring(0, 30)}...` : record.location}
+                        {record.location && record.location.length > 30 ? `${record.location.substring(0, 30)}...` : record.location || '-'}
                       </TableCell>
                     </TableRow>
                   ))}
