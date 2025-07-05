@@ -1,28 +1,27 @@
-import * as path from "path";
-import * as url from "url";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
+import { fileURLToPath } from "url"; // Import fileURLToPath
+
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-const { fileURLToPath } = url;
+// Get the directory name of the current module file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Dynamically import defineConfig because static import causes error
-const { defineConfig } = await import("vite");
-
-async function getPlugins() {
-  const plugins = [react(), runtimeErrorOverlay()];
-
-  if (process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined) {
-    const { cartographer } = await import("@replit/vite-plugin-cartographer");
-    plugins.push(cartographer());
-  }
-
-  return plugins;
-}
-
-export default defineConfig(async () => ({
-  plugins: await getPlugins(),
+export default defineConfig({
+  plugins: [
+    react(),
+    runtimeErrorOverlay(),
+    ...(process.env.NODE_ENV !== "production" &&
+    process.env.REPL_ID !== undefined
+      ? [
+          await import("@replit/vite-plugin-cartographer").then((m) =>
+            m.cartographer(),
+          ),
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
@@ -41,4 +40,4 @@ export default defineConfig(async () => ({
       deny: ["**/.*"],
     },
   },
-}));
+});
